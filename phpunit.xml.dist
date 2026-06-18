@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    bootstrap="vendor/autoload.php"
+    colors="true"
+>
+    <testsuites>
+        <testsuite name="Intercept Test Suite">
+            <directory>tests</directory>
+            <directory>src/InjectionGuard/tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src/InjectionGuard/src</directory>
+        </include>
+    </source>
+</phpunit>

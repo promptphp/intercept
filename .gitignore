@@ -1,1 +1,4 @@
-vendor/\n.idea/\n.DS_Store\ncomposer.lock
+vendor/
+.idea/
+.DS_Store
+composer.lock

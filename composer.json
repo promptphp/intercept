@@ -1,0 +1,99 @@
+{
+    "name": "promptphp/intercept",
+    "description": "A modular, drop-in middleware kit for Laravel AI agents. Protect, observe, and govern your AI agents with granular, install-what-you-need middleware packages.",
+    "type": "library",
+    "license": "MIT",
+    "version": "0.0.1",
+    "keywords": [
+        "laravel",
+        "ai",
+        "middleware",
+        "agent",
+        "security",
+        "observability",
+        "governance",
+        "performance",
+        "prompt-injection",
+        "pii-redaction",
+        "rate-limiting",
+        "semantic-caching",
+        "promptphp"
+    ],
+    "authors": [
+        {
+            "name": "Victor Ukam",
+            "email": "victorjohnukam@gmail.com",
+            "homepage": "https://github.com/veeqtoh",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.4.0",
+        "laravel/ai": "^0.8.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.29.1",
+        "mrpunyapal/rector-pest": "^0.2.15",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^5.0.0",
+        "pestphp/pest-plugin-type-coverage": "^5.0.0",
+        "phpstan/phpstan": "^2.1.54",
+        "rector/rector": "^2.4.2",
+        "symfony/var-dumper": "^8.0.8"
+    },
+    "replace": {
+        "promptphp/intercept-cache": "self.version",
+        "promptphp/intercept-content-moderation": "self.version",
+        "promptphp/intercept-injection-guard": "self.version",
+        "promptphp/intercept-logger": "self.version",
+        "promptphp/intercept-output-validator": "self.version",
+        "promptphp/intercept-pii-redactor": "self.version",
+        "promptphp/intercept-rate-limiter": "self.version",
+        "promptphp/intercept-system-guard": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\": "src/",
+            "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\Tests\\": "tests/",
+            "PromptPHP\\Intercept\\InjectionGuard\\Tests\\": "src/InjectionGuard/tests/",
+            "Workbench\\App\\": "workbench/app/"
+        }
+    },
+    "scripts": {
+        "mirrors:create": "bash tools/create-repos.sh",
+        "split": "bash tools/split.sh",
+        "release": "bash tools/release.sh",
+        "publish": [
+            "@mirrors:create",
+            "@split",
+            "@release"
+        ],
+        "test": "vendor/bin/pest",
+        "test:injection-guard": "vendor/bin/pest src/InjectionGuard/tests",
+        "format": "vendor/bin/pint",
+        "test:types": "vendor/bin/phpstan analyse",
+        "test:lint": [
+            "vendor/bin/pint --parallel --test"
+        ]
+    },
+    "scripts-descriptions": {
+        "mirrors:create": "Create mirror repositories for any new middleware packages",
+        "split": "Subtree-split changed packages into their mirror repos",
+        "release": "Tag and release the packages changed in the latest commit",
+        "publish": "Full release: create mirrors, split, then release"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "preferred-install": "dist",
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
