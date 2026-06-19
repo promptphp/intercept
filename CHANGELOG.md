@@ -13,6 +13,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.3] - 2026-06-20
+
+### Fixed
+
+- Added Laravel package discovery metadata to the root `promptphp/intercept` package so the shared support service provider is auto-discovered when installing the meta package.
+- Fixed `php artisan vendor:publish --tag=intercept-config` returning no publishable resources after installing `promptphp/intercept`.
+- Updated split release tooling to respect `RELEASE_VERSION`, allowing all split packages to be released with the same explicit version.
+- Added root release tooling for creating project-level GitHub releases on the main `promptphp/intercept` repository.
+
+### Changed
+
+- Standardised the release flow so the root package and split packages can stay version-aligned.
+- Updated GitHub mirror repository homepage metadata to use `https://intercept.promptphp.com`.
+
+## [0.1.2] - 2026-06-20
+
+### Fixed
+
+- Added the missing `promptphp/intercept-support` split package release.
+- Added the missing `autoload-dev` test namespace mapping for `promptphp/intercept-support`.
+- Ensured the Support package is included in validation, mirror creation, metadata sync, splitting, and release workflows.
+
+## [0.1.1] - 2026-06-20
+
+### Fixed
+
+- Release housekeeping for the initial split package publishing flow.
+
 ## [0.1.0] - 2026-06-20
 
 ### Added
