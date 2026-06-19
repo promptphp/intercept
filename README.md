@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="docs/public/banner.png" alt="Intercept by PromptPHP" width="100%">
+    <img src="docs/public/intercept-banner-dark.jpg" alt="Intercept by PromptPHP" width="100%">
 </p>
 
 <p align="center">
@@ -12,30 +12,33 @@ Intercept is a modular, drop-in collection of reusable AI agent middlewares for 
 
 ## Requirements
 
-> Requires PHP 8.3+ and `laravel/ai`.
+> Requires PHP 8.4+ and `laravel/ai`.
 
 ## Available Middlewares
 
-Browse the full, always-up-to-date catalog of middlewares on the [documentation site](https://intercept.promptphp.com).
+Browse the full catalog of middlewares on the [documentation site](https://intercept.promptphp.com).
 
-## Official Documentation
+## Documentation
 
-Documentation for Intercept can be found on the [documentation site](https://intercept.promptphp.com).
+Full documentation can be found at [https://intercept.promptphp.com/](https://intercept.promptphp.com/) or the [docs](docs/) directory on GitHub.
 
 ## Contributing
 
-Thank you for considering contributing to Intercept! The contribution guide can be found in
+Thank you for considering contributing to Intercept by PromptPHP. The contribution guide can be found in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Code of Conduct
 
-In order to ensure that the community is welcoming to all, please review and abide by the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+We follow the Laravel [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct). We expect you to abide by these guidelines as well.
 
 ## Security Vulnerabilities
 
-Please review [our security policy](SECURITY.md) on how to report security vulnerabilities.
+If you discover a security vulnerability within Intercept by PromptPHP, please email Victor Ukam at [victorjohnukam@gmail.com](victorjohnukam@gmail.com). All security vulnerabilities will be addressed promptly.
 
 ## License
 
-Intercept is open-sourced software licensed under the [MIT license](LICENSE.md).
+Intercept by PromptPHP is open-sourced software licensed under the [MIT license](LICENSE).
+
+## Support
+
+This library is created by [Victor Ukam](https://victorukam.com) with contributions from the [Open Source Community](https://github.com/promptphp/Intercept/graphs/contributors). If you've found this package useful, please consider [sponsoring this project](https://github.com/sponsors/veeqtoh). It will go a long way to help with maintenance.
