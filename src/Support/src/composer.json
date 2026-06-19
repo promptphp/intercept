@@ -2,6 +2,7 @@
     "name": "promptphp/intercept-support",
     "description": "Shared support utilities and configuration for Intercept middleware packages.",
     "keywords": ["laravel", "ai", "middleware", "prompt", "prompt-injection", "security"],
+    "homepage": "https://intercept.promptphp.com",
     "type": "library",
     "license": "MIT",
     "authors": [
