@@ -7,12 +7,14 @@
         <testsuite name="Intercept Test Suite">
             <directory>tests</directory>
             <directory>src/InjectionGuard/tests</directory>
+            <directory>src/Support/tests</directory>
         </testsuite>
     </testsuites>
 
     <source>
         <include>
             <directory>src/InjectionGuard/src</directory>
+            <directory>src/Support/src</directory>
         </include>
     </source>
 </phpunit>

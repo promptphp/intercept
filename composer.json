@@ -42,25 +42,21 @@
         "symfony/var-dumper": "^8.0.8"
     },
     "replace": {
-        "promptphp/intercept-cache": "self.version",
-        "promptphp/intercept-content-moderation": "self.version",
         "promptphp/intercept-injection-guard": "self.version",
-        "promptphp/intercept-logger": "self.version",
-        "promptphp/intercept-output-validator": "self.version",
-        "promptphp/intercept-pii-redactor": "self.version",
-        "promptphp/intercept-rate-limiter": "self.version",
-        "promptphp/intercept-system-guard": "self.version"
+        "promptphp/intercept-support": "self.version"
     },
     "autoload": {
         "psr-4": {
             "PromptPHP\\Intercept\\": "src/",
-            "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/"
+            "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/",
+            "PromptPHP\\Intercept\\Support\\": "src/Support/src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "PromptPHP\\Intercept\\Tests\\": "tests/",
             "PromptPHP\\Intercept\\InjectionGuard\\Tests\\": "src/InjectionGuard/tests/",
+            "PromptPHP\\Intercept\\Support\\Tests\\": "src/Support/tests/",
+            "PromptPHP\\Intercept\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -74,7 +70,9 @@
             "@release"
         ],
         "test": "vendor/bin/pest",
+        "test:architecture": "vendor/bin/pest tests/Architecture",
         "test:injection-guard": "vendor/bin/pest src/InjectionGuard/tests",
+        "test:support": "vendor/bin/pest src/Support/tests",
         "format": "vendor/bin/pint",
         "test:types": "vendor/bin/phpstan analyse",
         "test:lint": [

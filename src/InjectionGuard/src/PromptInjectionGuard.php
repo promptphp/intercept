@@ -8,8 +8,10 @@ use Closure;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Laravel\Ai\Prompts\AgentPrompt;
+use PromptPHP\Intercept\InjectionGuard\Defaults\InjectionGuardDefaults;
 use PromptPHP\Intercept\InjectionGuard\Enums\ActionTypes;
 use PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException;
+use PromptPHP\Intercept\Support\InterceptConfig;
  
 class PromptInjectionGuard
 {
@@ -62,21 +64,29 @@ class PromptInjectionGuard
     /**
      * Create a new PromptInjectionGuard instance.
      *
-     * @param  array<int, string> $patterns         Custom injection patterns.
-     * @param  string             $action           What to do: 'block', 'log', 'warn', or 'sanitize'.
-     * @param  Closure|null       $callback         Custom handler for detected injections.
-     * @param  bool               $mergePatterns    Whether to merge custom patterns with default ones.
-     * @param  bool               $normalisePrompt  Whether to normalise the prompt before checking it.
-     * @param  bool               $logPromptPreview Whether to include a short prompt preview in logs.
+     * @param  array<int, string>|null $patterns         Custom injection patterns.
+     * @param  string|null             $action           What to do: 'block', 'log', 'warn', or 'sanitize'.
+     * @param  Closure|null            $callback         Custom handler for detected injections.
+     * @param  bool|null               $mergePatterns    Whether to merge custom patterns with default ones.
+     * @param  bool|null               $normalisePrompt  Whether to normalise the prompt before checking it.
+     * @param  bool|null               $logPromptPreview Whether to include a short prompt preview in logs.
      */
     public function __construct(
-        array $patterns = [],
-        string $action = 'block',
+        ?array $patterns = null,
+        ?string $action = null,
         ?Closure $callback = null,
-        bool $mergePatterns = true,
-        bool $normalisePrompt = true,
-        bool $logPromptPreview = false,
+        ?bool $mergePatterns = null,
+        ?bool $normalisePrompt = null,
+        ?bool $logPromptPreview = null,
     ) {
+        $config = InterceptConfig::middleware('injection_guard', InjectionGuardDefaults::values());
+
+        $patterns         = $patterns ?? $config['patterns'];
+        $action           = $action ?? $config['action'];
+        $mergePatterns    = $mergePatterns ?? $config['merge_patterns'];
+        $normalisePrompt  = $normalisePrompt ?? $config['normalise_prompt'];
+        $logPromptPreview = $logPromptPreview ?? $config['log_prompt_preview'];
+
         $this->validateAction($action);
         $this->validatePatterns($patterns);
 

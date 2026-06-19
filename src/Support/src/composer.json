@@ -1,0 +1,24 @@
+{
+    "name": "promptphp/intercept-support",
+    "description": "Shared support utilities and configuration for Intercept middleware packages.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "illuminate/support": "^12.0|^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\Support\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PromptPHP\\Intercept\\Support\\InterceptServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

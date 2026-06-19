@@ -15,8 +15,8 @@ namespace PromptPHP\Intercept\InjectionGuard\Enums;
  */
 enum ActionTypes: string
 {
-    case BLOCK = 'block';
-    case LOG = 'log';
+    case BLOCK    = 'block';
+    case LOG      = 'log';
     case SANITIZE = 'sanitize';
-    case WARN = 'warn';
+    case WARN     = 'warn';
 }

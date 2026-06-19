@@ -30,7 +30,82 @@ The recommended default action is `block`.
 
 ## Configuration
 
-No configuration is required. Simply instantiate the middleware and pass it to an agent's `middleware()` method.
+No configuration is required. The middleware works out of the box using safe internal defaults.
+
+```php
+new PromptInjectionGuard()
+```
+
+By default, this will:
+
+* use the `block` action
+* use the built-in prompt injection patterns
+* merge any custom patterns with the built-in patterns
+* normalise prompts before scanning
+* avoid logging prompt previews
+
+### Optional global config
+
+Intercept supports an optional shared config file:
+
+```text
+config/intercept.php
+```
+
+This config file is used for global middleware defaults across the Intercept package.
+
+You may publish it with:
+
+```bash
+php artisan vendor:publish --tag=intercept-config
+```
+
+### Configuration priority
+
+Configuration is resolved in this order:
+
+```text
+constructor value > config value > internal middleware default
+```
+
+That means a constructor value always wins over the published config.
+
+For example, if your config says:
+
+```php
+'injection_guard' => [
+    'action' => 'block',
+],
+```
+
+You can still override it for a specific agent:
+
+```php
+public function middleware(): array
+{
+    return [
+        new PromptInjectionGuard(
+            action: 'log',
+        ),
+    ];
+}
+```
+
+In this case, the middleware will use `log` for that agent, even though the global config says `block`.
+
+### Partial config is supported
+
+You do not need to define every option in `config/intercept.php`.
+
+For example, this is valid:
+
+```php
+'injection_guard' => [
+    'action' => 'log',
+],
+```
+
+All missing options will fall back to the middleware's internal defaults.
 
 ## Usage
 

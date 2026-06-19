@@ -6,7 +6,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.4.0",
-        "laravel/ai": "^0.8.0"
+        "laravel/ai": "^0.8.0",
+        "promptphp/intercept-support": "^0.1"
     },
     "autoload": {
         "psr-4": {
