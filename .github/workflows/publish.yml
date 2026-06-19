@@ -1,0 +1,77 @@
+name: Publish Split Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      all:
+        description: Publish all packages
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MIRROR_TOKEN }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Validate packages
+        run: composer packages:validate
+
+      - name: Create mirrors
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: composer mirrors:create
+
+      - name: Sync mirror metadata
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: composer mirrors:sync
+
+      - name: Split packages
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ "${{ inputs.all }}" = "true" ]; then
+            composer split:all
+          else
+            composer split
+          fi
+
+      - name: Release packages
+        env:
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [ "${{ inputs.all }}" = "true" ]; then
+            composer release:all
+          else
+            composer release
+          fi
