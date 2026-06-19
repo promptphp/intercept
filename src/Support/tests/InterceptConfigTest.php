@@ -92,3 +92,25 @@ it('returns configured values when no defaults are provided', function (): void 
         'action' => 'warn',
     ]);
 });
+
+it('replaces list arrays instead of merging them by index', function (): void {
+    config()->set('intercept.middleware.pii_redactor', [
+        'entities' => [
+            'email',
+        ],
+    ]);
+
+    $config = InterceptConfig::middleware('pii_redactor', [
+        'entities' => [
+            'email',
+            'phone',
+            'credit_card',
+        ],
+    ]);
+
+    expect($config)->toBe([
+        'entities' => [
+            'email',
+        ],
+    ]);
+});

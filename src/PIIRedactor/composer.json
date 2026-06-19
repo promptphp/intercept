@@ -1,6 +1,6 @@
 {
-    "name": "promptphp/intercept-support",
-    "description": "Shared support utilities and configuration for Intercept middleware packages.",
+    "name": "promptphp/intercept-pii-redactor",
+    "description": "PII redaction middleware for Laravel AI agents.",
     "keywords": ["laravel", "ai", "middleware", "prompt", "prompt-injection", "security"],
     "type": "library",
     "license": "MIT",
@@ -14,18 +14,17 @@
     ],
     "require": {
         "php": "^8.4",
-        "illuminate/support": "^12.0|^13.0"
+        "laravel/ai": "^0.8.0",
+        "promptphp/intercept-support": "^0.1"
     },
     "autoload": {
         "psr-4": {
-            "PromptPHP\\Intercept\\Support\\": "src/"
+            "PromptPHP\\Intercept\\PIIRedactor\\": "src/"
         }
     },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "PromptPHP\\Intercept\\Support\\InterceptServiceProvider"
-            ]
+    "autoload-dev": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\PIIRedactor\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "dev",

@@ -43,18 +43,21 @@
     },
     "replace": {
         "promptphp/intercept-injection-guard": "self.version",
+        "promptphp/intercept-pii-redactor": "self.version",
         "promptphp/intercept-support": "self.version"
     },
     "autoload": {
         "psr-4": {
             "PromptPHP\\Intercept\\": "src/",
             "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/",
+            "PromptPHP\\Intercept\\PIIRedactor\\": "src/PIIRedactor/src/",
             "PromptPHP\\Intercept\\Support\\": "src/Support/src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "PromptPHP\\Intercept\\InjectionGuard\\Tests\\": "src/InjectionGuard/tests/",
+            "PromptPHP\\Intercept\\PIIRedactor\\Tests\\": "src/PIIRedactor/tests/",
             "PromptPHP\\Intercept\\Support\\Tests\\": "src/Support/tests/",
             "PromptPHP\\Intercept\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
@@ -72,6 +75,7 @@
         "test": "vendor/bin/pest",
         "test:architecture": "vendor/bin/pest tests/Architecture",
         "test:injection-guard": "vendor/bin/pest src/InjectionGuard/tests",
+        "test:pii-redactor": "vendor/bin/pest src/PIIRedactor/tests",
         "test:support": "vendor/bin/pest src/Support/tests",
         "format": "vendor/bin/pint",
         "test:types": "vendor/bin/phpstan analyse",

@@ -26,6 +26,36 @@ final class InterceptConfig
             return $defaults;
         }
 
-        return array_replace_recursive($defaults, $config);
+        return self::merge($defaults, $config);
+    }
+
+    /**
+     * Merge config over defaults.
+     *
+     * Associative arrays are merged recursively. List arrays are replaced.
+     *
+     * @param  array<string, mixed> $defaults
+     * @param  array<string, mixed> $config
+     * @return array<string, mixed>
+     */
+    protected static function merge(array $defaults, array $config): array
+    {
+        foreach ($config as $key => $value) {
+            if (
+                is_array($value)
+                && isset($defaults[$key])
+                && is_array($defaults[$key])
+                && ! array_is_list($value)
+                && ! array_is_list($defaults[$key])
+            ) {
+                $defaults[$key] = self::merge($defaults[$key], $value);
+
+                continue;
+            }
+
+            $defaults[$key] = $value;
+        }
+
+        return $defaults;
     }
 }
