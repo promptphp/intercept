@@ -10,8 +10,6 @@ final class InterceptServiceProvider extends ServiceProvider
 {
     /**
      * Register the application services.
-     * 
-     * @return void
      */
     public function register(): void
     {
@@ -23,8 +21,6 @@ final class InterceptServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap the application services.
-     * 
-     * @return void
      */
     public function boot(): void
     {

@@ -115,15 +115,15 @@ class PIIRedactor
     ) {
         $config = InterceptConfig::middleware('pii_redactor', PIIRedactorDefaults::values());
 
-        $entities          ??= $config['entities'];
-        $action            ??= $config['action'];
-        $blockEntities     ??= $config['block_entities'];
-        $allowedEmails     ??= $config['allowed_emails'];
-        $allowedDomains    ??= $config['allowed_domains'];
+        $entities ??= $config['entities'];
+        $action ??= $config['action'];
+        $blockEntities ??= $config['block_entities'];
+        $allowedEmails ??= $config['allowed_emails'];
+        $allowedDomains ??= $config['allowed_domains'];
         $replacementFormat ??= $config['replacement_format'];
-        $maskCharacter     ??= $config['mask_character'];
-        $logDetections     ??= $config['log_detections'];
-        $logPreview        ??= $config['log_preview'];
+        $maskCharacter ??= $config['mask_character'];
+        $logDetections ??= $config['log_detections'];
+        $logPreview ??= $config['log_preview'];
 
         $this->validateAction($action);
         $this->validateEntities($entities);
@@ -151,8 +151,6 @@ class PIIRedactor
      *
      * @param AgentPrompt $prompt The agent being prompted.
      * @param Closure     $next   The next middleware in the pipeline.
-     *
-     * @return mixed
      */
     public function handle(AgentPrompt $prompt, Closure $next): mixed
     {
@@ -184,9 +182,9 @@ class PIIRedactor
 
     /**
      * Detect PII in the given text.
-     * 
+     *
      * @param string $text The text to scan for PII.
-     * 
+     *
      * @return RedactionResult The result of the detection, including any found PII.
      */
     protected function detect(string $text): RedactionResult
@@ -218,7 +216,7 @@ class PIIRedactor
      *
      * @param string                $text       The text to scan for PII.
      * @param array<int, Detection> $detections The detected PII instances.
-     * 
+     *
      * @return RedactionResult The result of the redaction, including the modified text and any found PII
      */
     protected function redact(string $text, array $detections): RedactionResult
@@ -239,7 +237,7 @@ class PIIRedactor
      *
      * @param string                $text       The text to scan for PII.
      * @param array<int, Detection> $detections The detected PII instances.
-     * 
+     *
      * @return RedactionResult The result of the masking, including the modified text and any found PII
      */
     protected function mask(string $text, array $detections): RedactionResult
@@ -258,22 +256,19 @@ class PIIRedactor
     /**
      * Block the prompt.
      *
-     * @return never
-     * 
+     *
      * @throws PIIRedactorException Always throws an exception to block the prompt.
      */
     protected function block(): never
     {
-        throw new PIIRedactorException();
+        throw new PIIRedactorException;
     }
 
     /**
      * Log detected PII safely.
-     * 
+     *
      * @param AgentPrompt     $prompt The agent being prompted.
      * @param RedactionResult $result The result of the detection, including any found PII.
-     * 
-     * @return void
      */
     protected function log(AgentPrompt $prompt, RedactionResult $result): void
     {
@@ -286,8 +281,8 @@ class PIIRedactor
                 fn (Detection $detection): string => hash('sha256', $detection->value),
                 $result->detections,
             ),
-            'prompt_hash'  => hash('sha256', $prompt->prompt),
-            'timestamp'    => now()->toIso8601String(),
+            'prompt_hash' => hash('sha256', $prompt->prompt),
+            'timestamp'   => now()->toIso8601String(),
         ];
 
         if ($this->logPreview) {
@@ -299,9 +294,9 @@ class PIIRedactor
 
     /**
      * Determine whether a detection should be kept.
-     * 
+     *
      * @param Detection $detection The detection to evaluate.
-     * 
+     *
      * @return bool True if the detection should be kept; false otherwise.
      */
     protected function shouldKeepDetection(Detection $detection): bool
@@ -327,9 +322,9 @@ class PIIRedactor
 
     /**
      * Determine whether the result contains a blocked entity.
-     * 
+     *
      * @param RedactionResult $result The result of the detection, including any found PII.
-     * 
+     *
      * @return bool True if a blocked entity is found; false otherwise.
      */
     protected function hasBlockedEntity(RedactionResult $result): bool
@@ -382,7 +377,7 @@ class PIIRedactor
      * Remove overlapping detections.
      *
      * @param array<int, Detection> $detections Thre list of detections to process.
-     * 
+     *
      * @return array<int, Detection>
      */
     protected function removeOverlaps(array $detections): array
@@ -410,10 +405,10 @@ class PIIRedactor
 
     /**
      * Determine whether two detections overlap.
-     * 
+     *
      * @param Detection $a The first detection.
      * @param Detection $b The second detection.
-     * 
+     *
      * @return bool True if the detections overlap; false otherwise.
      */
     protected function overlaps(Detection $a, Detection $b): bool
@@ -423,21 +418,21 @@ class PIIRedactor
 
     /**
      * Get entity priority for overlap resolution. The higher the number, the higher the priority.
-     * 
+     *
      * @param string $type The entity type.
-     * 
+     *
      * @return int The priority of the entity type.
      */
     protected function priority(string $type): int
     {
         return match ($type) {
-            EntityTypes::API_KEY->value => 60,
+            EntityTypes::API_KEY->value      => 60,
             EntityTypes::BEARER_TOKEN->value => 50,
-            EntityTypes::CREDIT_CARD->value => 40,
-            EntityTypes::EMAIL->value => 30,
-            EntityTypes::IP_ADDRESS->value => 20,
-            EntityTypes::PHONE->value => 10,
-            default => 0,
+            EntityTypes::CREDIT_CARD->value  => 40,
+            EntityTypes::EMAIL->value        => 30,
+            EntityTypes::IP_ADDRESS->value   => 20,
+            EntityTypes::PHONE->value        => 10,
+            default                          => 0,
         };
     }
 
@@ -446,12 +441,12 @@ class PIIRedactor
      *
      * @param array<int, Detection> $detections The list of detections to process.
      * @param Closure               $resolver   The resolver function for creating replacements.
-     * 
+     *
      * @return array<int, array{start: int, length: int, replacement: string}>
      */
     protected function buildReplacements(array $detections, Closure $resolver): array
     {
-        $counts = [];
+        $counts       = [];
         $replacements = $detections;
 
         usort(
@@ -475,7 +470,7 @@ class PIIRedactor
      *
      * @param string                                                          $text         The text to apply replacements to.
      * @param array<int, array{start: int, length: int, replacement: string}> $replacements The list of replacements to apply.
-     * 
+     *
      * @return string The text with replacements applied.
      */
     protected function applyReplacements(string $text, array $replacements): string
@@ -499,10 +494,10 @@ class PIIRedactor
 
     /**
      * Format a redaction replacement.
-     * 
+     *
      * @param Detection $detection The detection to format.
      * @param int       $index     The index of the detection for this type.
-     * 
+     *
      * @return string The formatted replacement string.
      */
     protected function formatReplacement(Detection $detection, int $index): string
@@ -524,17 +519,17 @@ class PIIRedactor
     protected function maskValue(Detection $detection): string
     {
         return match ($detection->type) {
-            EntityTypes::EMAIL->value => $this->maskEmail($detection->value),
+            EntityTypes::EMAIL->value      => $this->maskEmail($detection->value),
             EntityTypes::IP_ADDRESS->value => preg_replace('/\.\d+$/', '.'.$this->maskCharacter, $detection->value) ?? $detection->value,
-            default => $this->maskGeneric($detection->value),
+            default                        => $this->maskGeneric($detection->value),
         };
     }
 
     /**
      * Mask an email address.
-     * 
+     *
      * @param string $email The email address to mask.
-     * 
+     *
      * @return string The masked email address.
      */
     protected function maskEmail(string $email): string
@@ -549,9 +544,9 @@ class PIIRedactor
 
     /**
      * Mask a generic value.
-     * 
+     *
      * @param string $value The value to mask.
-     * 
+     *
      * @return string The masked value.
      */
     protected function maskGeneric(string $value): string
@@ -565,8 +560,8 @@ class PIIRedactor
     /**
      * Summarise detected entities.
      *
-     * @param  array<int, Detection> $detections The list of detections to summarise.
-     * 
+     * @param array<int, Detection> $detections The list of detections to summarise.
+     *
      * @return array<string, int>
      */
     protected function summariseEntities(array $detections): array
@@ -584,11 +579,9 @@ class PIIRedactor
 
     /**
      * Validate the provided action.
-     * 
+     *
      * @param string $action The action to validate.
-     * 
-     * @return void
-     * 
+     *
      * @throws InvalidArgumentException If the action is not supported.
      */
     protected function validateAction(string $action): void
@@ -608,9 +601,7 @@ class PIIRedactor
      * Validate the provided entities.
      *
      * @param array<int, string> $entities The list of entities to validate.
-     * 
-     * @return void
-     * 
+     *
      * @throws InvalidArgumentException If any entity is not supported.
      */
     protected function validateEntities(array $entities): void
@@ -635,8 +626,6 @@ class PIIRedactor
      *
      * @param array<int, mixed> $detectors The list of detectors to validate.
      *
-     * @return void
-     *
      * @throws InvalidArgumentException If any detector does not implement the Detector contract.
      */
     protected function validateDetectors(array $detectors): void
@@ -650,9 +639,9 @@ class PIIRedactor
 
     /**
      * Determine whether a credit card-like value passes the Luhn check.
-     * 
+     *
      * @param string $value The value to check.
-     * 
+     *
      * @return bool True if the value passes the Luhn check; false otherwise.
      */
     protected function passesLuhn(string $value): bool
@@ -663,7 +652,7 @@ class PIIRedactor
             return false;
         }
 
-        $sum = 0;
+        $sum       = 0;
         $alternate = false;
 
         for ($i = strlen($digits) - 1; $i >= 0; $i--) {

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace PromptPHP\Intercept\PIIRedactor\ValueObjects;
 
-use PromptPHP\Intercept\PIIRedactor\ValueObjects\Detection;
-
 final readonly class RedactionResult
 {
     /**
@@ -23,8 +21,6 @@ final readonly class RedactionResult
 
     /**
      * Determine whether the result contains detections.
-     * 
-     * @return bool
      */
     public function hasDetections(): bool
     {

@@ -35,7 +35,7 @@ return [
              */
             'action' => 'block',
 
-            /** 
+            /**
              * Additional regex patterns used to detect prompt injection attempts.
              * Set merge_patterns to false if you want to use only the patterns listed here.
              */
@@ -43,19 +43,19 @@ return [
                 // Add your custom regex patterns here.
             ],
 
-            /** 
+            /**
              * Determines whether custom patterns should be merged with the built-in
              * prompt injection patterns. If false, only the custom patterns above will be used.
              */
             'merge_patterns' => true,
 
-            /** 
+            /**
              * Determines whether the prompt should be normalised before scanning.
              * Helps catch simple obfuscation.
              */
             'normalise_prompt' => true,
-            
-            /** 
+
+            /**
              * Determines whether a short preview of the prompt should be included
              * when logging injection detections. Prompts may contain sensitive user data.
              */
@@ -79,7 +79,7 @@ return [
              */
             'action' => 'redact',
 
-            /** 
+            /**
              * The entities that should be detected.
              */
             'entities' => [
@@ -91,7 +91,7 @@ return [
                 'bearer_token',
             ],
 
-            /** 
+            /**
              * The entities that should always block the prompt.
              */
             'block_entities' => [
@@ -100,12 +100,12 @@ return [
                 'bearer_token',
             ],
 
-            /** 
+            /**
              * The allowed email addresses.
              */
             'allowed_emails' => [],
 
-            /** 
+            /**
              * The allowed email domains.
              */
             'allowed_domains' => [],

@@ -9,9 +9,9 @@ final class InterceptConfig
     /**
      * Get the config for a middleware.
      *
-     * @param  string               $middleware Middleware name.
-     * @param  array<string, mixed> $defaults   Default middleware config.
-     * 
+     * @param string               $middleware Middleware name.
+     * @param array<string, mixed> $defaults   Default middleware config.
+     *
      * @return array<string, mixed>
      */
     public static function middleware(string $middleware, array $defaults = []): array
@@ -34,8 +34,9 @@ final class InterceptConfig
      *
      * Associative arrays are merged recursively. List arrays are replaced.
      *
-     * @param  array<string, mixed> $defaults
-     * @param  array<string, mixed> $config
+     * @param array<string, mixed> $defaults
+     * @param array<string, mixed> $config
+     *
      * @return array<string, mixed>
      */
     protected static function merge(array $defaults, array $config): array

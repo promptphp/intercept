@@ -12,7 +12,7 @@ use PromptPHP\Intercept\InjectionGuard\Defaults\InjectionGuardDefaults;
 use PromptPHP\Intercept\InjectionGuard\Enums\ActionTypes;
 use PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException;
 use PromptPHP\Intercept\Support\InterceptConfig;
- 
+
 class PromptInjectionGuard
 {
     /**
@@ -56,20 +56,18 @@ class PromptInjectionGuard
 
     /**
      * Custom callback for handling detected injections.
-     *
-     * @var Closure|null
      */
     protected ?Closure $callback;
 
     /**
      * Create a new PromptInjectionGuard instance.
      *
-     * @param  array<int, string>|null $patterns         Custom injection patterns.
-     * @param  string|null             $action           What to do: 'block', 'log', 'warn', or 'sanitize'.
-     * @param  Closure|null            $callback         Custom handler for detected injections.
-     * @param  bool|null               $mergePatterns    Whether to merge custom patterns with default ones.
-     * @param  bool|null               $normalisePrompt  Whether to normalise the prompt before checking it.
-     * @param  bool|null               $logPromptPreview Whether to include a short prompt preview in logs.
+     * @param array<int, string>|null $patterns         Custom injection patterns.
+     * @param string|null             $action           What to do: 'block', 'log', 'warn', or 'sanitize'.
+     * @param Closure|null            $callback         Custom handler for detected injections.
+     * @param bool|null               $mergePatterns    Whether to merge custom patterns with default ones.
+     * @param bool|null               $normalisePrompt  Whether to normalise the prompt before checking it.
+     * @param bool|null               $logPromptPreview Whether to include a short prompt preview in logs.
      */
     public function __construct(
         ?array $patterns = null,
@@ -102,10 +100,10 @@ class PromptInjectionGuard
 
     /**
      * Handle the incoming prompt.
-     * 
+     *
      * @param AgentPrompt $prompt The agent being prompted.
      * @param Closure     $next   The next middleware in the pipeline.
-     * 
+     *
      * @return mixed
      */
     public function handle(AgentPrompt $prompt, Closure $next)
@@ -121,9 +119,9 @@ class PromptInjectionGuard
 
     /**
      * Detect whether the prompt contains an injection attempt.
-     * 
-     * @param  string $prompt The prompt to check.
-     * 
+     *
+     * @param string $prompt The prompt to check.
+     *
      * @return array{pattern: string, match: string|null}|null
      */
     protected function detectInjectionAttempt(string $prompt): ?array
@@ -156,8 +154,6 @@ class PromptInjectionGuard
      * @param AgentPrompt                                $prompt    The agent being prompted.
      * @param Closure                                    $next      The next middleware in the pipeline.
      * @param array{pattern: string, match: string|null} $detection Detection details.
-     *  
-     * @return mixed
      */
     protected function handleInjection(AgentPrompt $prompt, Closure $next, array $detection): mixed
     {
@@ -177,14 +173,12 @@ class PromptInjectionGuard
      * Block the prompt with an exception.
      *
      * @param AgentPrompt $prompt The agent being prompted.
-     * 
-     * @return never
-     * 
+     *
      * @throws PromptInjectionGuardException
      */
     protected function block(AgentPrompt $prompt): never
     {
-        throw new PromptInjectionGuardException();
+        throw new PromptInjectionGuardException;
     }
 
     /**
@@ -193,8 +187,6 @@ class PromptInjectionGuard
      * @param AgentPrompt                                $prompt    The agent being prompted.
      * @param Closure                                    $next      The next middleware in the pipeline.
      * @param array{pattern: string, match: string|null} $detection Detection details.
-     * 
-     * @return mixed
      */
     protected function log(AgentPrompt $prompt, Closure $next, array $detection): mixed
     {
@@ -223,8 +215,6 @@ class PromptInjectionGuard
      * @param AgentPrompt                                $prompt    The agent being prompted.
      * @param Closure                                    $next      The next middleware in the pipeline.
      * @param array{pattern: string, match: string|null} $detection Detection details.
-     * 
-     * @return mixed
      */
     protected function sanitize(AgentPrompt $prompt, Closure $next, array $detection): mixed
     {
@@ -254,8 +244,6 @@ class PromptInjectionGuard
      * @param AgentPrompt                                $prompt    The agent being prompted.
      * @param Closure                                    $next      The next middleware in the pipeline.
      * @param array{pattern: string, match: string|null} $detection Detection details.
-     * 
-     * @return mixed
      */
     protected function warn(AgentPrompt $prompt, Closure $next, array $detection): mixed
     {
@@ -268,10 +256,8 @@ class PromptInjectionGuard
 
     /**
      * Normalise the prompt before checking for injection attempts.
-     * 
+     *
      * @param string $prompt The prompt to normalise.
-     * 
-     * @return string
      */
     protected function normalise(string $prompt): string
     {
@@ -286,10 +272,8 @@ class PromptInjectionGuard
 
     /**
      * Validate the provided action.
-     * 
+     *
      * @param string $action The action to validate.
-     * 
-     * @return void
      */
     protected function validateAction(string $action): void
     {
@@ -306,10 +290,8 @@ class PromptInjectionGuard
 
     /**
      * Validate the provided regex patterns.
-     * 
+     *
      * @param array<int, string> $patterns
-     * 
-     * @return void
      */
     protected function validatePatterns(array $patterns): void
     {

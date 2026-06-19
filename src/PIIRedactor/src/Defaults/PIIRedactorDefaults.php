@@ -14,7 +14,7 @@ final class PIIRedactorDefaults
     public static function values(): array
     {
         return [
-            'action' => 'redact',
+            'action'   => 'redact',
             'entities' => [
                 'email',
                 'phone',

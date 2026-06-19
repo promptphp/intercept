@@ -11,22 +11,22 @@ use PromptPHP\Intercept\PIIRedactor\Tests\Fixtures\PIIRedactorTestProvider;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\RedactionResult;
 
 afterEach(function (): void {
-    \Mockery::close();
+    Mockery::close();
 });
 
 function makePIIRedactorAgentPrompt(string $prompt): AgentPrompt
 {
     return new AgentPrompt(
-        agent: new PIIRedactorTestAgent(),
+        agent: new PIIRedactorTestAgent,
         prompt: $prompt,
         attachments: [],
-        provider: new PIIRedactorTestProvider(),
+        provider: new PIIRedactorTestProvider,
         model: 'test-model',
     );
 }
 
 it('allows safe prompts to continue through the pipeline', function (): void {
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $prompt = makePIIRedactorAgentPrompt('Summarise this support ticket.');
 
@@ -45,7 +45,7 @@ it('allows safe prompts to continue through the pipeline', function (): void {
 it('redacts email addresses by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $forwardedPrompt = null;
 
@@ -64,7 +64,7 @@ it('redacts email addresses by default', function (): void {
 it('redacts phone numbers by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $forwardedPrompt = null;
 
@@ -83,7 +83,7 @@ it('redacts phone numbers by default', function (): void {
 it('redacts ip addresses by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $forwardedPrompt = null;
 
@@ -102,7 +102,7 @@ it('redacts ip addresses by default', function (): void {
 it('blocks credit cards by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('My card is 4111 1111 1111 1111.'),
@@ -113,7 +113,7 @@ it('blocks credit cards by default', function (): void {
 it('blocks api keys by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('Use sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDE for this request.'),
@@ -124,7 +124,7 @@ it('blocks api keys by default', function (): void {
 it('blocks bearer tokens by default', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890'),
@@ -135,7 +135,7 @@ it('blocks bearer tokens by default', function (): void {
 it('logs safely and continues unchanged when action is log', function (): void {
     Log::shouldReceive('warning')
         ->once()
-        ->with('PII detected in agent prompt.', \Mockery::on(function (array $context): bool {
+        ->with('PII detected in agent prompt.', Mockery::on(function (array $context): bool {
             expect($context)->toHaveKeys([
                 'agent',
                 'provider',
@@ -178,7 +178,7 @@ it('logs safely and continues unchanged when action is log', function (): void {
 it('can include a prompt preview in logs when enabled', function (): void {
     Log::shouldReceive('warning')
         ->once()
-        ->with('PII detected in agent prompt.', \Mockery::on(function (array $context): bool {
+        ->with('PII detected in agent prompt.', Mockery::on(function (array $context): bool {
             expect($context)->toHaveKey('prompt_preview');
             expect($context['prompt_preview'])->toContain('victor@example.com');
 
@@ -224,7 +224,7 @@ it('uses config values when constructor values are not provided', function (): v
 
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $forwardedPrompt = null;
 
@@ -260,7 +260,7 @@ it('falls back to internal defaults when config section is missing', function ()
 
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $forwardedPrompt = null;
 
@@ -365,7 +365,7 @@ it('only detects enabled entities', function (): void {
 it('does not call the next middleware when blocking', function (): void {
     Log::shouldReceive('warning')->once();
 
-    $redactor = new PIIRedactor();
+    $redactor = new PIIRedactor;
 
     $nextWasCalled = false;
 

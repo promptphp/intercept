@@ -1,0 +1,29 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "phpdoc_summary": true,
+        "phpdoc_annotation_without_dot": false,
+        "phpdoc_separation": {
+            "groups": [
+                ["param"],
+                ["return"],
+                ["throws"]
+            ]
+        },
+        "binary_operator_spaces": {
+            "default": "single_space",
+            "operators": {
+                "=>": "align_single_space_minimal",
+                "=": "align_single_space_minimal"
+            }
+        },
+        "phpdoc_align": {
+            "align": "vertical",
+            "tags": ["param", "return", "throws", "type", "var"]
+        },
+        "no_superfluous_phpdoc_tags": false,
+        "phpdoc_indent": true,
+        "phpdoc_scalar": true,
+        "phpdoc_trim": true
+    }
+}

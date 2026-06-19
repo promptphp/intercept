@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace PromptPHP\Intercept\PIIRedactor\Enums;
 
-/** 
-* The types of PII entities that can be detected and redacted.
- * 
+/**
+ * The types of PII entities that can be detected and redacted.
+ *
  * Supported entity types:
  * - api_key: API keys.
  * - bearer_token: Bearer tokens.

@@ -12,7 +12,7 @@ final readonly class RegexDetector implements Detector
 {
     /**
      * Create a new regex detector.
-     * 
+     *
      * @param string $type       The detector entity type.
      * @param string $pattern    The regex pattern to use for detection.
      * @param float  $confidence The confidence level of the detection (default: 1.0).
@@ -27,7 +27,7 @@ final readonly class RegexDetector implements Detector
 
     /**
      * Get the detector entity type.
-     * 
+     *
      * @return string The detector entity type.
      */
     public function type(): string
@@ -39,7 +39,7 @@ final readonly class RegexDetector implements Detector
      * Detect sensitive values in the given text.
      *
      * @param string $text The text to analyze for sensitive values.
-     * 
+     *
      * @return array<int, Detection>
      */
     public function detect(string $text): array
