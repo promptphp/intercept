@@ -3,7 +3,7 @@
     "description": "A modular, drop-in middleware kit for Laravel AI agents. Protect, observe, and govern your AI agents with granular, install-what-you-need middleware packages.",
     "type": "library",
     "license": "MIT",
-    "version": "0.0.1",
+    "homepage": "https://intercept.promptphp.com",
     "keywords": [
         "laravel",
         "ai",
@@ -63,14 +63,36 @@
             "Workbench\\App\\": "workbench/app/"
         }
     },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "PromptPHP\\Intercept\\Support\\InterceptServiceProvider"
+            ]
+        }
+    },
     "scripts": {
         "mirrors:create": "bash tools/create-repos.sh",
+        "mirrors:sync": "bash tools/update-repo-descriptions.sh",
+        "packages:validate": "bash tools/validate-packages.sh",
         "split": "bash tools/split.sh",
+        "split:all": "bash tools/split.sh --all",
         "release": "bash tools/release.sh",
+        "release:all": "bash tools/release.sh --all",
+        "release:root": "bash tools/release-root.sh",
         "publish": [
+            "@packages:validate",
             "@mirrors:create",
+            "@mirrors:sync",
             "@split",
             "@release"
+        ],
+        "publish:all": [
+            "@packages:validate",
+            "@mirrors:create",
+            "@mirrors:sync",
+            "@split:all",
+            "@release:all",
+            "@release:root"
         ],
         "test": "vendor/bin/pest",
         "test:architecture": "vendor/bin/pest tests/Architecture",

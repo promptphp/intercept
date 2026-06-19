@@ -2,6 +2,7 @@
     "name": "promptphp/intercept-pii-redactor",
     "description": "PII redaction middleware for Laravel AI agents.",
     "keywords": ["laravel", "ai", "middleware", "prompt", "prompt-injection", "security"],
+    "homepage": "https://intercept.promptphp.com",
     "type": "library",
     "license": "MIT",
     "authors": [

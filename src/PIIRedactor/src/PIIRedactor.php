@@ -173,10 +173,9 @@ class PIIRedactor
         }
 
         return match ($this->action) {
-            ActionTypes::LOG    => $next($prompt),
-            ActionTypes::MASK   => $next($prompt->revise($this->mask($prompt->prompt, $result->detections)->text)),
-            ActionTypes::REDACT => $next($prompt->revise($this->redact($prompt->prompt, $result->detections)->text)),
-            ActionTypes::BLOCK  => $this->block(),
+            ActionTypes::LOG  => $next($prompt),
+            ActionTypes::MASK => $next($prompt->revise($this->mask($prompt->prompt, $result->detections)->text)),
+            default           => $next($prompt->revise($this->redact($prompt->prompt, $result->detections)->text)),
         };
     }
 

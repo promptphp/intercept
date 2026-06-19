@@ -11,11 +11,10 @@ use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\QueuedAgentResponse;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use RuntimeException;
-use Stringable;
 
 final class PIIRedactorTestAgent implements Agent
 {
-    public function instructions(): Stringable|string
+    public function instructions(): string
     {
         return 'You are a test agent.';
     }
