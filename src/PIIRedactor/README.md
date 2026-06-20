@@ -681,6 +681,13 @@ try {
         'message' => 'Your message could not be processed because it appears to contain sensitive data.',
     ], 422);
 }
+
+// Or if you prefer, catch the broader Intercept exception.
+use PromptPHP\Intercept\Support\Exceptions\InterceptException;
+
+catch (InterceptException) {
+    //
+}
 ```
 
 ## Security notes
