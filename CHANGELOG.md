@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.4] - 2026-06-24
+
+### Added
+
+- Added a shared `InterceptException` base exception in the Support package.
+- Added inheritance tests to confirm middleware-specific exceptions extend the shared Intercept exception.
+- Added documentation for handling blocked prompts through the shared Intercept exception.
+- Added initial Mintlify-ready documentation structure and MDX docs for Intercept.
+
+### Changed
+
+- Updated `PromptInjectionGuardException` to extend the shared `InterceptException`.
+- Updated `PIIRedactorException` to extend the shared `InterceptException`.
+- Improved exception handling DX by allowing applications to catch one shared Intercept exception while keeping middleware-specific exceptions available.
+- Updated release title generation to use the release tag consistently across repositories.
+
 ## [0.1.3] - 2026-06-20
 
 ### Fixed

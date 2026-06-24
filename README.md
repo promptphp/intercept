@@ -11,16 +11,16 @@
 
 ## Introduction
 
-Intercept is a modular, drop-in collection of reusable AI agent middlewares for the [Laravel AI SDK](https://github.com/laravel/ai).
+Intercept is a modular, drop-in collection of reusable AI agent middleware for the [Laravel AI SDK](https://github.com/laravel/ai).
 
 ## Requirements
 
 > [!Important]
 > Requires PHP 8.4+ and `laravel/ai`.
 
-## Available Middlewares
+## AI Agent Middleware collection
 
-Browse the full catalog of middlewares on the [documentation site](https://intercept.promptphp.com).
+Browse the full catalog of middleware on the [documentation site](https://intercept.promptphp.com).
 
 ## Documentation
 
