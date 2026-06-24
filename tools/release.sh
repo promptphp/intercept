@@ -134,7 +134,7 @@ EOF
 
     gh release create "${tag}" \
         --repo "${ORG}/${repo}" \
-        --title "${composer_name} ${tag}" \
+        --title "${tag}" \
         --notes "${release_notes}"
 
     echo "Released ${ORG}/${repo}@${tag}"

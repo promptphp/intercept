@@ -49,7 +49,7 @@ fi
 
 gh release create "${tag}" \
     --repo "${ORG}/${ROOT_REPO}" \
-    --title "Intercept ${tag}" \
+    --title "${tag}" \
     --notes "Project release for Intercept ${tag}.
 
 Packages released from this monorepo are available as split Composer packages."

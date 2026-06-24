@@ -139,7 +139,18 @@ Example:
 
 ## Useful workflow
 
-For a full manual release:
+For normal patch releases after the minor release:
+
+```bash
+composer test
+composer test:lint
+composer packages:validate
+composer split
+composer release:all
+composer release:root
+```
+
+For a minor release:
 
 ```bash
 composer test
@@ -149,16 +160,6 @@ composer mirrors:create
 composer mirrors:sync
 composer split:all
 RELEASE_TYPE=minor composer release:all
-```
-
-For normal patch releases after the first release:
-
-```bash
-composer test
-composer test:lint
-composer packages:validate
-composer split
-composer release
 ```
 
 ## Troubleshooting
