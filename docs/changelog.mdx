@@ -1,0 +1,59 @@
+---
+title: "Changelog"
+sidebarTitle: "Changelog"
+rss: true
+---
+
+Product updates and release notes for Intercept.
+
+<Update label="June 24, 2026" description="v0.1.4" tags={["Release", "DX", "Docs"]}>
+    Added a shared `InterceptException` base exception in the Support package.
+
+    Middleware-specific exceptions now extend the shared exception:
+
+    - `PromptInjectionGuardException`
+    - `PIIRedactorException`
+
+    This lets applications catch one shared Intercept exception when they want simpler error handling, while still keeping middleware-specific exceptions available for more granular control.
+
+    Also added documentation for handling blocked prompts and improved the release title generation used across repositories.
+</Update>
+
+<Update label="June 20, 2026" description="v0.1.3" tags={["Release", "Fix"]}>
+    Fixed Laravel package discovery when installing the root `promptphp/intercept` meta package.
+
+    The shared Support service provider is now auto-discovered correctly, which fixes:
+
+    ```sh
+    php artisan vendor:publish --tag=intercept-config
+    ```
+    returning no publishable resources after installing the meta package.
+
+    This release also improved release tooling so the root package and split packages can stay version-aligned.
+</Update>
+
+<Update label="June 20, 2026" description="v0.1.2" tags={["Release", "Fix"]}>
+    Added the missing `promptphp/intercept-support` split package release.
+
+    Also added the missing test namespace mapping for the Support package and ensured Support is included in validation, mirror creation, metadata sync, splitting, and release workflows.
+</Update>
+
+<Update label="June 20, 2026" description="v0.1.1" tags={["Release"]}>
+    Release housekeeping for the initial split package publishing flow.
+</Update>
+
+<Update label="June 20, 2026" description="v0.1.0" tags={["Initial release"]}>
+
+    Initial public release of Intercept.
+
+    This release introduced Intercept as a modular middleware collection for Laravel AI agents.
+
+    It included:
+
+    - `promptphp/intercept`
+    - `promptphp/intercept-support`
+    - `promptphp/intercept-injection-guard`
+    - `promptphp/intercept-pii-redactor`
+
+    It also added shared configuration through `config/intercept.php`, the `intercept-config` publish tag, prompt injection detection, PII redaction, safe logging, package documentation, Pest tests, and the split-package monorepo structure.
+</Update>

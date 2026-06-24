@@ -1,89 +1,120 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Intercept by PromptPHP",
-  "description": "Intercept is a modular, drop-in collection of reusable AI agent middleware for the Laravel AI SDK.",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "maple",
+    "name": "Intercept by PromptPHP",
+    "description": "Intercept is a modular, drop-in collection of reusable AI agent middleware for the Laravel AI SDK.",
+    "colors": {
+        "primary": "#D97706",
+        "light": "#F59E0B",
+        "dark": "#B45309"
+    },
+    "favicon": "/favicon.svg",
+    "appearance": {
+        "default": "system"
+    },
+    "fonts": {
+        "family": "Inter"
+    },
+    "icons": {
+        "library": "lucide"
+    },
+    "background": {
+    "decoration": "gradient",
+        "color": {
+            "light": "#FFFBEB",
+            "dark": "#0C0A09"
+        }
+    },
+    "styling": {
+        "codeblocks": {
+            "theme": {
+                "light": "github-light",
+                "dark": "github-dark"
+            }
+        }
+    },
     "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "icon": "rocket",
         "pages": [
-          "index",
-          "quickstart",
-          "configuration"
+            {
+                "group": "Getting Started",
+                "icon": "rocket",
+                "pages": [
+                    "index",
+                    "quickstart",
+                    "configuration"
+                ]
+            },
+            {
+                "group": "Middleware collection",
+                "icon": "shield",
+                "pages": [
+                    "middleware/injection-guard",
+                    "middleware/pii-redactor"
+                ]
+            },
+            {
+                "group": "Contributor resources",
+                "icon": "user",
+                "pages": [
+                    "contributor-resources/support"
+                ]
+            },
+            {
+                "group": "Guides & Reference",
+                "icon": "book",
+                "pages": [
+                    "guides/production-rollout",
+                    "guides/handling-blocked-prompts",
+                    "guides/security-notes"
+                ]
+            },
+            {
+                "group": "Updates",
+                "icon": "newspaper",
+                "pages": [
+                    "changelog"
+                ]
+            }
         ]
-      },
-      {
-        "group": "Middleware collection",
-        "icon": "shield",
-        "pages": [
-          "middleware/injection-guard",
-          "middleware/pii-redactor"
+    },
+    "logo": {
+        "light": "/logo/intercept-logo-light.svg",
+        "dark": "/logo/intercept-logo-dark.svg",
+        "href": "https://intercept.promptphp.com/"
+    },
+    "navbar": {
+        "links": [
+            {
+                "label": "GitHub",
+                "href": "https://github.com/promptphp/intercept"
+            },
+            {
+                "label": "Packagist",
+                "href": "https://packagist.org/packages/promptphp/intercept"
+            }
+        ],
+        "primary": {
+            "type": "button",
+            "label": "Sponsor",
+            "href": "https://github.com/sponsors/veeqtoh"
+        }
+    },
+    "contextual": {
+        "options": [
+            "copy",
+            "view",
+            "chatgpt",
+            "claude",
+            "perplexity",
+            "mcp",
+            "cursor",
+            "vscode"
         ]
-      },
-      {
-        "group": "Contributor resources",
-        "icon": "user",
-        "pages": [
-          "contributor-resources/support"
-        ]
-      },
-      {
-        "group": "Guides & Reference",
-        "icon": "book",
-        "pages": [
-          "guides/production-rollout",
-          "guides/handling-blocked-prompts",
-          "guides/security-notes"
-        ]
-      }
-    ]
-  },
-  "logo": {
-    "light": "/logo/intercept-logo-light.svg",
-    "dark": "/logo/intercept-logo-dark.svg",
-    "href": "https://intercept.promptphp.com/"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "GitHub",
-        "href": "https://github.com/promptphp/intercept"
-      },
-      {
-        "label": "Packagist",
-        "href": "https://packagist.org/packages/promptphp/intercept"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Sponsor",
-      "href": "https://github.com/sponsors/veeqtoh"
+    },
+    "footer": {
+        "socials": {
+            "x": "https://x.com/promptphp",
+            "github": "https://github.com/promptphp/intercept"
+        }
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/promptphp",
-      "github": "https://github.com/promptphp/intercept"
-    }
-  }
 }
