@@ -1,0 +1,100 @@
+---
+title: "Production rollout"
+sidebarTitle: "Production rollout"
+---
+
+Intercept middleware can block, redact, mask, log, or modify prompts before they reach an AI provider.
+
+For production apps, it is usually best to roll out gradually.
+
+## Recommended rollout path
+
+Start by observing. Then tune. Then enforce.
+
+## Local environment
+
+In local development, use logging so you can understand what the middleware detects.
+
+```php
+use PromptPHP\Intercept\InjectionGuard\PromptInjectionGuard;
+use PromptPHP\Intercept\PIIRedactor\PIIRedactor;
+
+public function middleware(): array
+{
+    return [
+        new PromptInjectionGuard(
+            action: 'log',
+        ),
+
+        new PIIRedactor(
+            action: 'log',
+            blockEntities: [],
+        ),
+    ];
+}
+```
+
+This lets prompts continue while writing detection logs.
+
+## Staging environment
+
+In staging, continue logging but use traffic and examples that look closer to production.
+
+```php
+public function middleware(): array
+{
+    return [
+        new PromptInjectionGuard(
+            action: 'log',
+        ),
+
+        new PIIRedactor(
+            action: 'redact',
+            blockEntities: [],
+        ),
+    ];
+}
+```
+
+This lets you confirm that PII redaction works without blocking user flows too early.
+
+## Production environment
+
+In production, use stricter defaults.
+
+```php
+public function middleware(): array
+{
+    return [
+        new PromptInjectionGuard(
+            action: 'block',
+        ),
+
+        new PIIRedactor(
+            action: 'redact',
+            blockEntities: [
+                'credit_card',
+                'api_key',
+                'bearer_token',
+            ],
+        ),
+    ];
+}
+```
+
+This setup:
+
+- blocks common prompt injection attempts
+- redacts common structured PII
+- blocks high-risk secrets
+- avoids exposing raw sensitive values to the provider
+
+## Suggested environment matrix
+
+| Environment             | Injection Guard | PII Redactor                  | Notes                                        |
+| ----------------------- | --------------- | ----------------------------- | -------------------------------------------- |
+| Local                   | `log`           | `log`                         | Good for development and debugging.          |
+| Staging                 | `log`           | `redact`                      | Good for testing real behaviour.             |
+| Production              | `block`         | `redact`                      | Good default for public agents.              |
+| Internal tools          | `warn` or `log` | `mask` or `redact`            | Depends on trust level and data sensitivity. |
+| High-risk public agents | `block`         | `redact` with blocked secrets | Recommended for exposed workflows.           |

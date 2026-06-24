@@ -1,8 +1,8 @@
-# Monorepo Tools
+# Intercept Monorepo Tools
 
 This directory contains helper scripts for managing Intercept's monorepo and split-package workflow.
 
-The monorepo remains the source of truth. Package repositories such as `promptphp/intercept-injection-guard`, `promptphp/intercept-pii-redactor`, and `promptphp/intercept-support` are read-only subtree splits.
+The monorepo remains the source of truth. Package repositories are read-only subtree splits.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ gh
 jq
 ```
 
-You must also be authenticated with GitHub CLI:
+> You must also be authenticated with GitHub CLI:
 
 ```bash
 gh auth status
@@ -80,13 +80,13 @@ https://intercept.promptphp.com
 
 Splits package folders under `src/*` into their matching read-only mirror repositories using `git subtree split`.
 
-Run changed packages only:
+To run changed packages only:
 
 ```bash
 composer split
 ```
 
-Run all packages:
+To run all packages:
 
 ```bash
 composer split:all
@@ -96,13 +96,13 @@ composer split:all
 
 Creates Git tags and GitHub releases for split repositories.
 
-Run changed packages only:
+To run changed packages only:
 
 ```bash
 composer release
 ```
 
-Run all packages:
+To run all packages:
 
 ```bash
 composer release:all
@@ -134,7 +134,8 @@ Example:
 }
 ```
 
-If a package is not listed there, the tooling falls back to a kebab-case version of the folder name.
+> [!IMPORTANT]
+> If a package is not listed there, the tooling falls back to a kebab-case version of the folder name.
 
 ## Useful workflow
 
@@ -239,6 +240,7 @@ If pushing to split repositories fails, check that:
 
 ### Packagist publishing
 
-These scripts do not register packages on Packagist.
+> [!Important]
+> These scripts do not register packages on Packagist.
 
 Register each split package manually once. After that, Packagist can read future versions from Git tags.

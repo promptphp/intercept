@@ -1,8 +1,11 @@
 <p align="center">
-    <img src="docs/public/intercept-banner-dark.jpg" alt="Intercept by PromptPHP" width="100%">
+    <img src="docs/logo/intercept-banner-dark.jpg" alt="Intercept by PromptPHP" width="100%">
 </p>
 
 <p align="center">
+    <a href="https://packagist.org/packages/promptphp/intercept">
+        <img src="https://img.shields.io/packagist/v/promptphp/intercept?style=flat-square" alt="Latest Version on Packagist">
+    </a>
     <a href="https://github.com/promptphp/intercept/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/promptphp/intercept"></a>
 </p>
 
@@ -12,6 +15,7 @@ Intercept is a modular, drop-in collection of reusable AI agent middlewares for 
 
 ## Requirements
 
+> [!Important]
 > Requires PHP 8.4+ and `laravel/ai`.
 
 ## Available Middlewares

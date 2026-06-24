@@ -1,0 +1,103 @@
+---
+title: "Handling blocked prompts"
+sidebarTitle: "Handling blocked prompts"
+---
+
+Some Intercept middleware actions stop a prompt before it reaches the AI provider.
+
+When a prompt is blocked, your app should catch the exception and return a safe user-facing response.
+
+## Injection Guard exception
+
+Injection Guard throws:
+
+```php
+PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException
+```
+
+Example:
+
+```php
+use PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException;
+
+try {
+    $response = SupportAgent::prompt($message);
+} catch (PromptInjectionGuardException) {
+    return response()->json([
+        'message' => 'Your message could not be processed because it appears to contain unsafe prompt instructions.',
+    ], 422);
+}
+```
+
+## PII Redactor exception
+
+PII Redactor throws:
+
+```php
+PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException
+```
+
+Example:
+
+```php
+use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
+
+try {
+    $response = SupportAgent::prompt($message);
+} catch (PIIRedactorException) {
+    return response()->json([
+        'message' => 'Your message could not be processed because it appears to contain sensitive data.',
+    ], 422);
+}
+```
+
+## Catch both exceptions
+
+Most apps should catch both.
+
+```php
+use PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException;
+use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
+
+try {
+    $response = SupportAgent::prompt($message);
+} catch (PromptInjectionGuardException) {
+    return response()->json([
+        'message' => 'Your message could not be processed because it appears to contain unsafe prompt instructions.',
+    ], 422);
+} catch (PIIRedactorException) {
+    return response()->json([
+        'message' => 'Your message could not be processed because it appears to contain sensitive data.',
+    ], 422);
+}
+```
+<Tip>
+    You may also catch the parent exception class `InterceptException` throwable by all Intercept middleware.
+</Tip>
+
+```php
+use PromptPHP\Intercept\Support\Exceptions\InterceptException;
+
+try {
+    $response = SupportAgent::prompt($message);
+} catch (InterceptException $exception) {
+    return response()->json([
+        'message' => 'Your message could not be processed because it appears to contain unsafe prompt instructions or sensitive data.',
+    ], 422);
+}
+```
+
+## Validation-style responses
+
+If your frontend expects validation errors, return a validation-style payload.
+
+```php
+return response()->json([
+    'message' => 'The given data was invalid.',
+    'errors' => [
+        'message' => [
+            'Please remove unsafe instructions or sensitive data and try again.',
+        ],
+    ],
+], 422);
+```

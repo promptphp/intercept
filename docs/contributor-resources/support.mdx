@@ -1,0 +1,103 @@
+---
+title: "Support utilities"
+sidebarTitle: "Support utilities"
+---
+
+`promptphp/intercept-support` provides shared support utilities and configuration for the Intercept middleware ecosystem.
+
+Most users do not need to install or use this package directly. It is installed automatically when required by an Intercept middleware package.
+
+The support package provides shared infrastructure used across Intercept packages including
+
+- the shared `config/intercept.php` configuration file
+- the `intercept-config` publish tag
+- the `InterceptConfig` helper for resolving middleware configuration
+- the `InterceptServiceProvider` for Laravel package registration
+
+## Installation
+
+You usually do not need to install this package directly.
+
+It is installed automatically when installing an Intercept middleware package. If needed, you can install it directly:
+
+```bash
+composer require promptphp/intercept-support
+```
+
+## Configuration
+
+See [configuration](/configuration) for details on the shared `config/intercept.php`.
+
+## Reading middleware config
+
+Middleware packages should use `InterceptConfig::middleware()` to read their config safely.
+
+```php
+use PromptPHP\Intercept\Support\InterceptConfig;
+
+$config = InterceptConfig::middleware('injection_guard', [
+    'action' => 'block',
+    'patterns' => [],
+    'merge_patterns' => true,
+    'normalise_prompt' => true,
+    'log_prompt_preview' => false,
+]);
+```
+
+The helper merges the published config section with the middleware's internal defaults. If the section is missing, the defaults are returned.
+
+## Missing config sections
+
+Missing config sections are safe.
+
+For example, a user may publish `config/intercept.php` while only using Injection Guard. If they later install PII Redactor, their existing config file may not contain a `pii_redactor` section.
+
+That is fine. PII Redactor will still work using its internal defaults.
+
+Users only need to add a middleware section to `config/intercept.php` when they want to customise global behaviour.
+
+## Service provider
+
+This package registers the shared Intercept service provider:
+
+```php
+PromptPHP\Intercept\Support\InterceptServiceProvider::class
+```
+
+The provider:
+
+- merges the default `intercept` config
+- exposes the `intercept-config` publish tag
+
+Laravel package auto-discovery should register this provider automatically.
+
+If auto-discovery is unavailable, register the provider manually in `bootstrap/providers.php`:
+
+```php
+return [
+    App\Providers\AppServiceProvider::class,
+
+    PromptPHP\Intercept\Support\InterceptServiceProvider::class,
+];
+```
+
+## For middleware package authors
+
+Each Intercept middleware package should:
+
+- require `promptphp/intercept-support`
+- define its own internal defaults
+- read global config through `InterceptConfig::middleware()`
+- work even if its config section is missing
+- avoid publishing its own separate config file
+
+Example:
+
+```php
+$config = InterceptConfig::middleware(
+    'pii_redactor',
+    PIIRedactorDefaults::values(),
+);
+```
+
+This keeps the Intercept ecosystem consistent while allowing each middleware package to remain independently installable.

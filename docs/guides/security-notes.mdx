@@ -1,0 +1,124 @@
+---
+title: "Security notes"
+sidebarTitle: "Security notes"
+---
+
+Intercept is a practical middleware layer for Laravel AI agents.
+
+It helps reduce risk before prompts reach an AI provider, but it is not a complete security boundary on its own.
+
+Use it as part of a layered AI safety strategy.
+
+## Intercept is middleware, not magic
+
+Intercept can inspect, redact, block, or modify prompts before they reach the provider.
+
+It cannot guarantee that every unsafe input will be detected.
+
+It cannot guarantee that every sensitive value will be found.
+
+It cannot replace application-level authorization, validation, access control, or tool permission checks.
+
+## Recommended layers
+
+For production AI agents, combine Intercept with:
+
+- server-side validation
+- least-privilege tool access
+- strict tool argument validation
+- data minimisation
+- provider safety controls
+- audit logging
+- rate limits and abuse detection
+- human approval for high-risk actions
+- clear user-facing error handling
+
+## Prompt injection limits
+
+Injection Guard uses heuristic pattern detection.
+
+It is useful for common prompt injection attempts such as:
+
+- ignoring previous instructions
+- revealing hidden prompts
+- bypassing system rules
+- requesting internal instructions
+
+It may miss:
+
+- novel attacks
+- subtle multi-turn attacks
+- indirect prompt injection
+- encoded attacks not covered by normalisation
+- attacks hidden inside retrieved documents or tool results
+
+Do not rely on prompt injection detection alone.
+
+## PII detection limits
+
+PII Redactor is deterministic and regex-based.
+
+It is useful for structured values such as:
+
+- email addresses
+- phone numbers
+- credit card-like values
+- IP addresses
+- API keys
+- bearer tokens
+
+It may miss:
+
+- names
+- postal addresses
+- uncommon identifiers
+- unusual phone formats
+- secrets with unknown formats
+- sensitive context that does not look like structured PII
+
+It may also flag values that look sensitive but are not.
+
+## Safe user-facing errors
+
+When a prompt is blocked, return a simple message.
+
+Good:
+
+```text
+Please remove sensitive information and try again.
+```
+
+Good:
+
+```text
+Your message could not be processed because it appears to contain unsafe prompt instructions.
+```
+
+Avoid:
+
+```text
+Your prompt matched /ignore previous instructions/i.
+```
+
+Avoid:
+
+```text
+Your API key sk_live_... was detected.
+```
+
+Do not expose internal patterns, raw values, or detection details to users.
+
+## Best practice checklist
+
+Before launching a public AI agent:
+
+- install only the middleware you need
+- publish and review config
+- decide which actions to use per environment
+- catch middleware exceptions
+- use safe user-facing error messages
+- avoid raw prompt logging
+- validate tool calls server-side
+- minimise prompt context
+- test with realistic unsafe prompts
+- review false positives before blocking aggressively
