@@ -3,6 +3,9 @@
 </p>
 
 <p align="center">
+    <a href="https://github.com/promptphp/intercept/actions">
+        <img alt="Build Status" src="https://github.com/promptphp/intercept/actions/workflows/tests.yml/badge.svg">
+    </a>
     <a href="https://packagist.org/packages/promptphp/intercept">
         <img src="https://img.shields.io/packagist/v/promptphp/intercept?style=flat-square" alt="Latest Version on Packagist">
     </a>
@@ -11,7 +14,7 @@
 
 ## Introduction
 
-Intercept is a modular, drop-in collection of reusable AI agent middleware for the [Laravel AI SDK](https://github.com/laravel/ai).
+Intercept is a modular, drop-in collection of reusable AI agent middleware for the [Laravel AI SDK](https://github.com/laravel/ai) offering middleware across security, observability, performance and guidance. It works by siting between your AI agent and your AI provider providing guardrails to prompts before they reach the provider, just like a typical HTTP middleware that sits between the route and your app's business logic.
 
 ## Requirements
 
@@ -20,24 +23,15 @@ Intercept is a modular, drop-in collection of reusable AI agent middleware for t
 
 ## AI Agent Middleware collection
 
-Browse the full catalog of middleware on the [documentation site](https://intercept.promptphp.com).
+Documentation on the full suite of middleware is available on the [documentation site](https://intercept.promptphp.com). The [roadmap](ROADMAP.md) provides an overview of planned features, upcoming middleware, and the project's future direction, while the [changelog](CHANGELOG.md) documents notable changes between releases.
 
-## Documentation
+## Official Documentation
 
-Full documentation can be found at [https://intercept.promptphp.com/](https://intercept.promptphp.com/) or the [docs](docs/) directory on GitHub.
-
-## Contributing
-
-Thank you for considering contributing to Intercept by PromptPHP. The contribution guide can be found in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Official documentation can be found at [https://intercept.promptphp.com/](https://intercept.promptphp.com/) or the [docs](docs/) directory on GitHub.
 
 ## Code of Conduct
 
 We follow the Laravel [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct). We expect you to abide by these guidelines as well.
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Intercept by PromptPHP, please email Victor Ukam at [victorjohnukam@gmail.com](victorjohnukam@gmail.com). All security vulnerabilities will be addressed promptly.
 
 ## License
 

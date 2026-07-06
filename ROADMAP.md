@@ -2,9 +2,14 @@
 
 This roadmap outlines the planned direction for Intercept by PromptPHP.
 
-Intercept is a modular middleware collection for Laravel AI agents. The goal is to help Laravel AI-native developers protect, observe, and govern AI agent behaviour through small, installable packages.
+Intercept's goal is to help Laravel AI-native developers protect, observe, and govern AI agent behaviour through small, installable packages.
 
-The roadmap is intentionally practical. Packages are prioritised based on current AI application risks, Laravel AI SDK fit, likely production value, and implementation resource overhead.
+Packages are prioritised based on current AI application risks, Laravel AI SDK fit, likely production value, and implementation resource overhead.
+
+> [!IMPORTTANT]
+> This roadmap is not a promise of exact delivery order. It is a working direction for the Intercept ecosystem.
+>
+> The priority is to stabilise current packages.
 
 ## Current packages
 
@@ -66,14 +71,3 @@ Planned features:
 Contributions are welcome. Please see [contributing guide](contributing.md) for more .
 
 ---
-
-## Roadmap status
-
-This roadmap is not a promise of exact delivery order. It is a working direction for the Intercept ecosystem.
-
-The current priority is to release and stabilise:
-
-- `promptphp/intercept-injection-guard`
-- `promptphp/intercept-pii-redactor`
-
-Future packages will be shaped by real Laravel AI SDK usage, production pain points, and community contributions.
