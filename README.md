@@ -9,7 +9,12 @@
     <a href="https://packagist.org/packages/promptphp/intercept">
         <img src="https://img.shields.io/packagist/v/promptphp/intercept?style=flat-square" alt="Latest Version on Packagist">
     </a>
-    <a href="https://github.com/promptphp/intercept/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/promptphp/intercept"></a>
+    <a href="https://github.com/promptphp/intercept/blob/main/LICENSE">
+        <img alt="License" src="https://img.shields.io/github/license/promptphp/intercept">
+    </a>
+    <a href="https://laravel-news.com/intercept-middleware-guardrails-for-laravel-ai-agents/">
+        <img src="https://img.shields.io/badge/Featured%20in%20Laravel%20News-F9322C?style=flat-square&logo=laravel&logoColor=white" alt="Featured in Laravel News">
+    </a>
 </p>
 
 ## Introduction
