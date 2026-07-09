@@ -6,7 +6,7 @@ Intercept's goal is to help Laravel AI-native developers protect, observe, and g
 
 Packages are prioritised based on current AI application risks, Laravel AI SDK fit, likely production value, and implementation resource overhead.
 
-> [!IMPORTTANT]
+> [!Important]
 > This roadmap is not a promise of exact delivery order. It is a working direction for the Intercept ecosystem.
 >
 > The priority is to stabilise current packages.
