@@ -21,16 +21,16 @@ class PromptInjectionGuard
      * @var array<int, string>
      */
     protected array $patterns = [
-        '/ignore (?:all|previous|the) (?:instructions|prompts|directives)/i',
-        '/disregard (?:all|previous|the) (?:instructions|prompts|directives)/i',
-        '/system(?: prompt)?\s*[:=]/i',
-        '/new (?:instructions|prompt|directive)\s*[:=]/i',
-        '/you (?:are|will) now/i',
-        '/pretend (?:you are|to be)/i',
-        '/act (?:as|like) (?:an?|the)/i',
-        '/from now on/i',
-        '/your (?:new|current) (?:role|task|purpose)/i',
-        '/override (?:the )?system prompt/i',
+        '/ignore\s+(?:all|previous|the)\s+(?:instructions|prompts|directives)/i',
+        '/disregard\s+(?:all|previous|the)\s+(?:instructions|prompts|directives)/i',
+        '/system(?:\s+prompt)?\s*[:=]/i',
+        '/new\s+(?:instructions|prompt|directive)\s*[:=]/i',
+        '/you\s+(?:are|will)\s+now/i',
+        '/pretend\s+(?:you\s+are|to\s+be)/i',
+        '/act\s+(?:as|like)\s+(?:an?|the)/i',
+        '/from\s+now\s+on/i',
+        '/your\s+(?:new|current)\s+(?:role|task|purpose)/i',
+        '/override\s+(?:the\s+)?system\s+prompt/i',
     ];
 
     /**
