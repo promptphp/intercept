@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.5] - 2026-07-14
+
+### Added
+
+- Added contribution guidelines to help developers contribute consistently to the Intercept middleware collection.
+
+### Changed
+
+- Hardened built-in prompt injection detection patterns in `PromptInjectionGuard`.
+- Updated the project roadmap and contribution documentation.
+
+### Removed
+
+- Removed the redundant `SECURITY.md` file.
+
 ## [0.1.4] - 2026-06-24
 
 ### Added
