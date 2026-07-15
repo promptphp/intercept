@@ -369,6 +369,10 @@ class PIIRedactor
                 EntityTypes::PHONE->value,
                 '/(?<!\d)(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,5}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}(?!\d)/'
             ),
+            new RegexDetector(
+                EntityTypes::MAC_ADDRESS->value,
+                '/\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/'
+            ),
         ];
     }
 
@@ -431,6 +435,7 @@ class PIIRedactor
             EntityTypes::EMAIL->value        => 30,
             EntityTypes::IP_ADDRESS->value   => 20,
             EntityTypes::PHONE->value        => 10,
+            EntityTypes::MAC_ADDRESS->value  => 5,
             default                          => 0,
         };
     }
