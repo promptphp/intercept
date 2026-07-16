@@ -99,7 +99,7 @@ it('redacts ip addresses by default', function (): void {
     expect($forwardedPrompt->prompt)->toBe('The login came from [IP_ADDRESS_1].');
 });
 
-it('redacts MAC addresses by default', function () : void {
+it('redacts MAC addresses by default', function (): void {
     Log::shouldReceive('warning')->once();
 
     $redactor = new PIIRedactor;

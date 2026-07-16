@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.6] - 2026-07-16
+
+### Added
+
+- Added MAC address detection to `PIIRedactor`.
+- MAC addresses can now be redacted, masked, logged, or blocked alongside the existing supported entity types.
+
+### Changed
+
+- Updated documentation to include MAC address detection and examples.
+
 ## [0.1.5] - 2026-07-14
 
 ### Added

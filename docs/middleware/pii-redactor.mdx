@@ -58,9 +58,9 @@ class SupportAgent implements Agent, HasMiddleware
 By default, the middleware will:
 
 - use the `redact` action
-- detect emails, phone numbers, credit cards, IP addresses, API keys, and bearer tokens
+- detect emails, phone numbers, credit cards, IP addresses, MAC addresses, API keys, and bearer tokens
 - block credit cards, API keys, and bearer tokens
-- redact lower-risk values such as emails, phone numbers, and IP addresses
+- redact lower-risk values such as emails, phone numbers, MAC addresses and IP addresses
 - not log raw detected values
 - not log prompt previews
 
@@ -85,6 +85,7 @@ Some entities can still be blocked even when the action is `redact`. By default,
 | `phone`        | Common phone number formats.                  |
 | `credit_card`  | Credit card-like numbers validated with Luhn. |
 | `ip_address`   | IPv4 addresses.                               |
+| `mac_address`  | MAC addresses.                                |
 | `api_key`      | Common API key formats.                       |
 | `bearer_token` | Bearer authorization tokens.                  |
 

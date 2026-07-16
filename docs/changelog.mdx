@@ -6,6 +6,19 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="July 16, 2026" description="v0.1.6" tags={["Release", "PII Redaction"]}>
+    Added support for detecting MAC addresses in `PIIRedactor`.
+
+    MAC addresses are now treated like other supported PII entities and can be
+
+    - redacted
+    - masked
+    - logged
+    - blocked
+
+    Documentation has also been updated to include the new supported entity type and usage examples.
+</Update>
+
 <Update label="July 14, 2026" description="v0.1.5" tags={["Release", "Security", "Community"]}>
     Hardened the built-in prompt injection detection patterns in `PromptInjectionGuard` to improve protection against common prompt injection attempts.
 
