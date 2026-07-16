@@ -23,4 +23,5 @@ enum EntityTypes: string
     case EMAIL        = 'email';
     case IP_ADDRESS   = 'ip_address';
     case PHONE        = 'phone';
+    case MAC_ADDRESS  = 'mac_address';
 }
