@@ -99,6 +99,25 @@ it('redacts ip addresses by default', function (): void {
     expect($forwardedPrompt->prompt)->toBe('The login came from [IP_ADDRESS_1].');
 });
 
+it('redacts MAC addresses by default', function () : void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('The router MAC is 00:1A:2B:3C:4D:5E'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('The router MAC is [MAC_ADDRESS_1]');
+});
+
 it('blocks credit cards by default', function (): void {
     Log::shouldReceive('warning')->once();
 
