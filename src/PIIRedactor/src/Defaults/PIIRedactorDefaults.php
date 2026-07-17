@@ -23,6 +23,7 @@ final class PIIRedactorDefaults
                 'api_key',
                 'bearer_token',
                 'mac_address',
+                'url',
             ],
             'block_entities' => [
                 'credit_card',

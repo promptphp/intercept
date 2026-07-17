@@ -118,6 +118,25 @@ it('redacts MAC addresses by default', function (): void {
     expect($forwardedPrompt->prompt)->toBe('The router MAC is [MAC_ADDRESS_1]');
 });
 
+it('redacts URLs by default', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Look at http://example.com, check the page https://example.com, visit the site at www.example.com, or https://127.0.0.1:8080, or view the example.com/dashboard.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Look at [URL_1], check the page [URL_2], visit the site at [URL_3], or [URL_4], or view the [URL_5].');
+});
+
 it('blocks credit cards by default', function (): void {
     Log::shouldReceive('warning')->once();
 
