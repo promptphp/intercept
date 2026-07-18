@@ -29,7 +29,7 @@
     ],
     "require": {
         "php": "^8.4.0",
-        "laravel/ai": "^0.8.0"
+        "laravel/ai": "*"
     },
     "require-dev": {
         "laravel/pint": "^1.29.1",

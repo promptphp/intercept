@@ -5,10 +5,18 @@
     "homepage": "https://intercept.promptphp.com",
     "type": "library",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Victor Ukam",
+            "email": "victorjohnukam@gmail.com",
+            "homepage": "https://github.com/veeqtoh",
+            "role": "Developer"
+        }
+    ],
     "require": {
         "php": "^8.4.0",
-        "laravel/ai": "^0.8.0",
-        "promptphp/intercept-support": "^0.1"
+        "laravel/ai": "*",
+        "promptphp/intercept-support": "*"
     },
     "autoload": {
         "psr-4": {

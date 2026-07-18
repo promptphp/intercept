@@ -373,19 +373,53 @@ class PIIRedactor
                 EntityTypes::MAC_ADDRESS->value,
                 '/\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/'
             ),
+            // Pattern 1: URLs with scheme (http:// or https://).
             new RegexDetector(
                 EntityTypes::URL->value,
-                '/\b(?:https?:\/\/|www\.)[a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[a-zA-Z0-9+&@#\/%=~_|]|\b(?<![a-zA-Z0-9@])(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[a-zA-Z0-9+&@#\/%=~_|])?\b/'
+                '~\bhttps?://[^\s<>"{}|\\^`\[\]]+(?<![.,;:!])~i',
+                1.0,
+                function (string $url): bool {
+                    $url = rtrim($url, '.,;:!'); // trim trailing punctuation swallowed by regex.
+
+                    $parsed = parse_url($url);
+
+                    return $parsed !== false
+                        && isset($parsed['scheme'], $parsed['host'])
+                        && in_array($parsed['scheme'], ['http', 'https'], true);
+                }
             ),
+            // Pattern 2: URLs without scheme (www.example.com or example.com/path)
+            // More conservative to avoid false positives.
+            new RegexDetector(
+                EntityTypes::URL->value,
+                '~\b(?<![a-zA-Z0-9@])[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(?:/[^\s<>"{}|\\^`\[\]]+)?(?<![.,;:!])~i',
+                0.9,
+                function (string $url): bool {
+                    // Bare domains in prose are not URLs.
+                    if (! str_contains($url, '/') && ! str_starts_with($url, 'www.')) {
+                        return false;
+                    }
+
+                    $url = rtrim($url, '.,;:!');
+
+                    // Prepend scheme so parse_url can validate the host.
+                    $parsed = parse_url('http://'.$url);
+
+                    return $parsed !== false
+                        && isset($parsed['host'])
+                        && str_contains($parsed['host'], '.');
+                }
+            ),
+
         ];
     }
 
     /**
      * Remove overlapping detections.
      *
-     * @param array<int, Detection> $detections Thre list of detections to process.
+     * @param array<int, Detection> $detections The list of detections to process.
      *
-     * @return array<int, Detection>
+     * @return array<int, Detection> The list of detections with overlaps removed.
      */
     protected function removeOverlaps(array $detections): array
     {
@@ -439,6 +473,7 @@ class PIIRedactor
             EntityTypes::EMAIL->value        => 30,
             EntityTypes::IP_ADDRESS->value   => 20,
             EntityTypes::PHONE->value        => 10,
+            EntityTypes::URL->value          => 8,
             EntityTypes::MAC_ADDRESS->value  => 5,
             default                          => 0,
         };
@@ -570,7 +605,7 @@ class PIIRedactor
      *
      * @param array<int, Detection> $detections The list of detections to summarise.
      *
-     * @return array<string, int>
+     * @return array<string, int> A summary of detected entities, with entity types as keys and counts as values.
      */
     protected function summariseEntities(array $detections): array
     {
