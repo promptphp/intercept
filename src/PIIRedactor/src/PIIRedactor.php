@@ -373,6 +373,10 @@ class PIIRedactor
                 EntityTypes::MAC_ADDRESS->value,
                 '/\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/'
             ),
+            new RegexDetector(
+                EntityTypes::URL->value,
+                '/\b(?:https?:\/\/|www\.)[a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[a-zA-Z0-9+&@#\/%=~_|]|\b(?<![a-zA-Z0-9@])(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[a-zA-Z0-9+&@#\/%=~_|])?\b/'
+            ),
         ];
     }
 
