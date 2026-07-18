@@ -6,6 +6,21 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="July 18, 2026" description="v0.1.7" tags={["Release", "PII Redaction"]}>
+    Added support for all versions of `laravel/ai`.
+    
+    Added support for detecting URLs in `PIIRedactor`.
+
+    URLs are now treated like other supported PII entities and can be
+
+    - redacted
+    - masked
+    - logged
+    - blocked
+
+    Documentation has also been updated to include the new supported entity type and usage examples.
+</Update>
+
 <Update label="July 16, 2026" description="v0.1.6" tags={["Release", "PII Redaction"]}>
     Added support for detecting MAC addresses in `PIIRedactor`.
 

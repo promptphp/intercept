@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.7] - 2026-07-18
+
+### Added
+
+- Added URL detection to `PIIRedactor`.
+- URLs can now be redacted, masked, logged, or blocked alongside the existing supported entity types.
+- Added support for all versions of `laravel/ai`.
+
+### Changed
+
+- Updated `PIIRedactorTestProvider` and `PromptInjectionTestProvider` to implement all methods required by the latest `laravel/ai` `TextProvider` / `Provider` interfaces, resolving CI failures on fresh installs.
+- Updated documentation to include URL detection and tests.
+
 ## [0.1.6] - 2026-07-16
 
 ### Added
@@ -22,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated documentation to include MAC address detection and examples.
+- Updated documentation to include MAC address detection and tests.
 
 ## [0.1.5] - 2026-07-14
 
