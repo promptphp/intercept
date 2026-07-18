@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PromptPHP\Intercept\PIIRedactor\Detectors;
 
+use Closure;
 use InvalidArgumentException;
 use PromptPHP\Intercept\PIIRedactor\Detectors\Contracts\Detector;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\Detection;
@@ -13,14 +14,16 @@ final readonly class RegexDetector implements Detector
     /**
      * Create a new regex detector.
      *
-     * @param string $type       The detector entity type.
-     * @param string $pattern    The regex pattern to use for detection.
-     * @param float  $confidence The confidence level of the detection (default: 1.0).
+     * @param string   $type       The detector entity type.
+     * @param string   $pattern    The regex pattern to use for detection.
+     * @param float    $confidence The confidence level of the detection (default: 1.0).
+     * @param ?Closure $validator  A optional closure to validate detected values.
      */
     public function __construct(
         protected string $type,
         protected string $pattern,
         protected float $confidence = 1.0,
+        protected ?Closure $validator = null,
     ) {
         //
     }
@@ -40,7 +43,7 @@ final readonly class RegexDetector implements Detector
      *
      * @param string $text The text to analyze for sensitive values.
      *
-     * @return array<int, Detection>
+     * @return array<int, Detection> An array of Detection objects representing the detected sensitive values.
      */
     public function detect(string $text): array
     {
@@ -59,15 +62,24 @@ final readonly class RegexDetector implements Detector
             return [];
         }
 
-        return array_map(
-            fn (array $match): Detection => new Detection(
+        $detections = [];
+
+        foreach ($matches[0] as $match) {
+            $value = $match[0];
+
+            if ($this->validator !== null && ! ($this->validator)($value)) {
+                continue;
+            }
+
+            $detections[] = new Detection(
                 type: $this->type,
-                value: $match[0],
+                value: $value,
                 start: $match[1],
-                length: strlen($match[0]),
+                length: strlen($value),
                 confidence: $this->confidence,
-            ),
-            $matches[0],
-        );
+            );
+        }
+
+        return $detections;
     }
 }

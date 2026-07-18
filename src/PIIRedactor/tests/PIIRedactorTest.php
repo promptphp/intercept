@@ -137,6 +137,226 @@ it('redacts URLs by default', function (): void {
     expect($forwardedPrompt->prompt)->toBe('Look at [URL_1], check the page [URL_2], visit the site at [URL_3], or [URL_4], or view the [URL_5].');
 });
 
+it('redacts http URLs with fragments', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('See http://example.com/docs#section-1 for details.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('See [URL_1] for details.');
+});
+
+it('redacts URLs with ports', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Dev server at http://localhost:8080/api is ready.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Dev server at [URL_1] is ready.');
+});
+
+it('strips trailing punctuation from scheme URLs', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Visit https://example.com, it is great.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Visit [URL_1], it is great.');
+});
+
+it('redacts bare domains that start with www.', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Go to www.example.com today.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Go to [URL_1] today.');
+});
+
+it('redacts bare domains that include a path', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Repo at github.com/org/repo/pull/123.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Repo at [URL_1].');
+});
+
+it('does not redact bare domains in prose without a path or www prefix', function (): void {
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('I love github.com and use it daily.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    // No PII detected → no log, prompt unchanged
+    expect($forwardedPrompt->prompt)->toBe('I love github.com and use it daily.');
+});
+
+it('does not redact bare domains at end of sentence', function (): void {
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('My favourite site is laravel.com.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('My favourite site is laravel.com.');
+});
+
+it('does not redact bare domains inside parentheses', function (): void {
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('See docs (example.com) for more.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('See docs (example.com) for more.');
+});
+
+it('does not redact malformed scheme URLs without a host', function (): void {
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Broken link: http://?foo=bar.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Broken link: http://?foo=bar.');
+});
+
+it('does not redact scheme-only fragments', function (): void {
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Type http:// here.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Type http:// here.');
+});
+
+it('prefers the full scheme URL over an overlapping bare domain', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Check https://example.com/path for updates.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    // Must be a single [URL_1] covering the full scheme URL, not two separate redactions
+    expect($forwardedPrompt->prompt)->toBe('Check [URL_1] for updates.');
+});
+
+it('redacts URLs alongside emails and phone numbers', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwardedPrompt = null;
+
+    $redactor->handle(
+        makePIIRedactorAgentPrompt('Email victor@example.com or visit https://example.com/help or call 07123456789.'),
+        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $prompt;
+
+            return 'continued';
+        },
+    );
+
+    expect($forwardedPrompt->prompt)->toBe('Email [EMAIL_1] or visit [URL_1] or call [PHONE_1].');
+});
+
 it('blocks credit cards by default', function (): void {
     Log::shouldReceive('warning')->once();
 
