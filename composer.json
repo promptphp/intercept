@@ -28,18 +28,18 @@
         }
     ],
     "require": {
-        "php": "^8.4.0",
+        "php": "^8.3",
         "laravel/ai": "*"
     },
     "require-dev": {
         "laravel/pint": "^1.29.1",
         "mrpunyapal/rector-pest": "^0.2.15",
-        "orchestra/testbench": "^10.0|^11.0",
-        "pestphp/pest": "^5.0.0",
-        "pestphp/pest-plugin-type-coverage": "^5.0.0",
-        "phpstan/phpstan": "^2.1.54",
+        "orchestra/testbench": "^10.6|^11.0",
+        "pestphp/pest": "^3.0|^4.0|^5.0.0",
+        "pestphp/pest-plugin-type-coverage": "^3.0|^4.0|^5.0.0",
+        "phpstan/phpstan": "^2.1",
         "rector/rector": "^2.4.2",
-        "symfony/var-dumper": "^8.0.8"
+        "symfony/var-dumper": "^7.0|^8.0.8"
     },
     "replace": {
         "promptphp/intercept-injection-guard": "self.version",
