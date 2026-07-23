@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.1.8] - 2026-07-23
+
+### Added
+
+- Support PHP 8.3 across middleware collection.
+
 ## [0.1.7] - 2026-07-18
 
 ### Added
