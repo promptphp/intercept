@@ -24,7 +24,7 @@ Watch a quick demo of Intercept in action.
 ## Requirements
 
 > [!Important]
-> Requires PHP 8.4+ and `laravel/ai`.
+> Requires PHP 8.3+ and `laravel/ai`.
 
 ## AI Agent Middleware collection
 
