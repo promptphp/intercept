@@ -11,10 +11,13 @@ use Laravel\Ai\Prompts\AgentPrompt;
 use PromptPHP\Intercept\InjectionGuard\Defaults\InjectionGuardDefaults;
 use PromptPHP\Intercept\InjectionGuard\Enums\ActionTypes;
 use PromptPHP\Intercept\InjectionGuard\Exceptions\PromptInjectionGuardException;
+use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
 use PromptPHP\Intercept\Support\InterceptConfig;
 
 class PromptInjectionGuard
 {
+    use ScansApprovalDecisions;
+
     /**
      * Patterns that indicate a prompt injection attempt.
      *
@@ -65,6 +68,11 @@ class PromptInjectionGuard
     protected bool $logPromptPreview = false;
 
     /**
+     * Whether to scan the tool approval decisions carried by a resumed run.
+     */
+    protected bool $scanApprovalDecisions = true;
+
+    /**
      * Custom callback for handling detected injections.
      */
     protected ?Closure $callback;
@@ -72,12 +80,13 @@ class PromptInjectionGuard
     /**
      * Create a new PromptInjectionGuard instance.
      *
-     * @param array<int, string>|null $patterns         Custom injection patterns.
-     * @param string|null             $action           What to do: 'block', 'log', 'warn', or 'sanitize'.
-     * @param Closure|null            $callback         Custom handler for detected injections.
-     * @param bool|null               $mergePatterns    Whether to merge custom patterns with default ones.
-     * @param bool|null               $normalisePrompt  Whether to normalise the prompt before checking it.
-     * @param bool|null               $logPromptPreview Whether to include a short prompt preview in logs.
+     * @param array<int, string>|null $patterns              Custom injection patterns.
+     * @param string|null             $action                What to do: 'block', 'log', 'warn', or 'sanitize'.
+     * @param Closure|null            $callback              Custom handler for detected injections.
+     * @param bool|null               $mergePatterns         Whether to merge custom patterns with default ones.
+     * @param bool|null               $normalisePrompt       Whether to normalise the prompt before checking it.
+     * @param bool|null               $logPromptPreview      Whether to include a short prompt preview in logs.
+     * @param bool|null               $scanApprovalDecisions Whether to scan tool approval decisions on resumed runs.
      */
     public function __construct(
         ?array $patterns = null,
@@ -86,14 +95,16 @@ class PromptInjectionGuard
         ?bool $mergePatterns = null,
         ?bool $normalisePrompt = null,
         ?bool $logPromptPreview = null,
+        ?bool $scanApprovalDecisions = null,
     ) {
         $config = InterceptConfig::middleware('injection_guard', InjectionGuardDefaults::values());
 
-        $patterns         = $patterns ?? $config['patterns'];
-        $action           = $action ?? $config['action'];
-        $mergePatterns    = $mergePatterns ?? $config['merge_patterns'];
-        $normalisePrompt  = $normalisePrompt ?? $config['normalise_prompt'];
-        $logPromptPreview = $logPromptPreview ?? $config['log_prompt_preview'];
+        $patterns              = $patterns ?? $config['patterns'];
+        $action                = $action ?? $config['action'];
+        $mergePatterns         = $mergePatterns ?? $config['merge_patterns'];
+        $normalisePrompt       = $normalisePrompt ?? $config['normalise_prompt'];
+        $logPromptPreview      = $logPromptPreview ?? $config['log_prompt_preview'];
+        $scanApprovalDecisions = $scanApprovalDecisions ?? $config['scan_approval_decisions'];
 
         $this->validateAction($action);
         $this->validatePatterns($patterns);
@@ -106,6 +117,8 @@ class PromptInjectionGuard
         $this->callback         = $callback;
         $this->normalisePrompt  = $normalisePrompt;
         $this->logPromptPreview = $logPromptPreview;
+
+        $this->scanApprovalDecisions = $scanApprovalDecisions;
     }
 
     /**
@@ -118,6 +131,10 @@ class PromptInjectionGuard
      */
     public function handle(AgentPrompt $prompt, Closure $next)
     {
+        if ($prompt->hasApprovalDecisions()) {
+            return $this->handleApprovalDecisions($prompt, $next);
+        }
+
         $detection = $this->detectInjectionAttempt($prompt->prompt);
 
         if ($detection === null) {
@@ -125,6 +142,158 @@ class PromptInjectionGuard
         }
 
         return $this->handleInjection($prompt, $next, $detection);
+    }
+
+    /**
+     * Handle a prompt resuming a paused run from tool approval decisions.
+     *
+     * A resumed prompt carries no prompt text. The only new content is what a human supplied
+     * while resolving the pending tool calls, so that is what gets scanned here. Prompt
+     * normalisation applies to that text exactly as it does to a prompt, since an edited tool
+     * argument is just as able to carry encoded or zero-width obfuscation.
+     *
+     * Resumed prompts are immutable by design, because a paused turn must replay verbatim
+     * against the provider that recorded it. The `sanitize` and `warn` actions therefore have
+     * nowhere to write their output and degrade to logging, while `block` still stops the run.
+     *
+     * @param AgentPrompt $prompt The agent being prompted.
+     * @param Closure     $next   The next middleware in the pipeline.
+     */
+    protected function handleApprovalDecisions(AgentPrompt $prompt, Closure $next): mixed
+    {
+        if (! $this->scanApprovalDecisions) {
+            return $next($prompt);
+        }
+
+        $detected = [];
+
+        foreach ($this->approvalDecisionSegments($prompt->approvalDecisions) as $segment) {
+            $detection = $this->detectInjectionAttempt($segment->text);
+
+            if ($detection === null) {
+                continue;
+            }
+
+            $detected[] = [
+                'tool_call_id' => $segment->toolCallId,
+                'field'        => $segment->field,
+                'pattern'      => $detection['pattern'],
+                'match'        => $detection['match'],
+                'text'         => $segment->text,
+            ];
+        }
+
+        if ($detected === []) {
+            return $next($prompt);
+        }
+
+        if ($this->callback !== null) {
+            return ($this->callback)($prompt, $next, $this->firstApprovalDecisionDetection($detected));
+        }
+
+        if ($this->action === ActionTypes::BLOCK) {
+            $this->blockApprovalDecisions($detected);
+        }
+
+        $this->logApprovalDecisions($prompt, $detected);
+
+        return $next($prompt);
+    }
+
+    /**
+     * Block a resumed run that carries an injection attempt in its approval decisions.
+     *
+     * The exception names the offending tool call and field, but never the matched text,
+     * so the message stays safe to surface.
+     *
+     * @param array<int, array{tool_call_id: string, field: string, pattern: string, match: string|null, text: string}> $detected
+     *
+     * @throws PromptInjectionGuardException
+     */
+    protected function blockApprovalDecisions(array $detected): never
+    {
+        throw new PromptInjectionGuardException(
+            sprintf(
+                'Prompt injection attempt detected in tool approval decisions [%s].',
+                implode(', ', array_map(
+                    fn (array $item): string => $item['tool_call_id'].': '.$item['field'],
+                    $detected,
+                )),
+            )
+        );
+    }
+
+    /**
+     * Log injection attempts found in tool approval decisions.
+     *
+     * @param AgentPrompt                                                                                               $prompt   The agent being prompted.
+     * @param array<int, array{tool_call_id: string, field: string, pattern: string, match: string|null, text: string}> $detected The detections grouped by decision segment.
+     */
+    protected function logApprovalDecisions(AgentPrompt $prompt, array $detected): void
+    {
+        $segments = [];
+
+        foreach ($detected as $item) {
+            $segment = [
+                'tool_call_id' => $item['tool_call_id'],
+                'field'        => $item['field'],
+                'pattern'      => $item['pattern'],
+                'match'        => $item['match'],
+            ];
+
+            if ($this->logPromptPreview) {
+                $segment['preview'] = str($item['text'])->limit(300)->toString();
+            }
+
+            $segments[] = $segment;
+        }
+
+        $context = [
+            'agent'     => $prompt->agent::class,
+            'provider'  => $prompt->provider()::class,
+            'model'     => $prompt->model,
+            'source'    => 'approval_decisions',
+            'segments'  => $segments,
+            'timestamp' => now()->toIso8601String(),
+        ];
+
+        if ($degraded = $this->degradedAction()) {
+            $context['degraded_from'] = $degraded;
+        }
+
+        Log::warning('Prompt injection attempt detected in tool approval decisions.', $context);
+    }
+
+    /**
+     * Reduce the approval decision detections to the single detection shape callbacks expect.
+     *
+     * The tool call ID and field are added alongside the existing keys, so callbacks written
+     * against the prompt path keep working unchanged.
+     *
+     * @param array<int, array{tool_call_id: string, field: string, pattern: string, match: string|null, text: string}> $detected
+     *
+     * @return array{pattern: string, match: string|null, tool_call_id: string, field: string}
+     */
+    protected function firstApprovalDecisionDetection(array $detected): array
+    {
+        return [
+            'pattern'      => $detected[0]['pattern'],
+            'match'        => $detected[0]['match'],
+            'tool_call_id' => $detected[0]['tool_call_id'],
+            'field'        => $detected[0]['field'],
+        ];
+    }
+
+    /**
+     * Get the configured action when it cannot be applied to a resumed run.
+     *
+     * @return string|null The degraded action, or null when the action needs no rewrite.
+     */
+    protected function degradedAction(): ?string
+    {
+        return in_array($this->action, [ActionTypes::SANITIZE, ActionTypes::WARN], true)
+            ? $this->action->value
+            : null;
     }
 
     /**

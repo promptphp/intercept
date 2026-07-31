@@ -14,11 +14,12 @@ final class InjectionGuardDefaults
     public static function values(): array
     {
         return [
-            'action'             => 'block',
-            'patterns'           => [],
-            'merge_patterns'     => true,
-            'normalise_prompt'   => true,
-            'log_prompt_preview' => false,
+            'action'                  => 'block',
+            'patterns'                => [],
+            'merge_patterns'          => true,
+            'normalise_prompt'        => true,
+            'log_prompt_preview'      => false,
+            'scan_approval_decisions' => true,
         ];
     }
 }
