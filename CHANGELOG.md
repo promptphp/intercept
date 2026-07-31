@@ -11,7 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+- Fixed `PromptInjectionGuard` failing to detect the most common prompt injection phrasings.
+  `ignore all previous instructions`, `disregard all previous instructions`,
+  `ignore the previous instructions`, `disregard the previous instructions`, and
+  `ignore all previous prompts` were not matched by any built-in pattern, because the `ignore`
+  and `disregard` patterns required the noun to follow the qualifier immediately.
+- Aligned the `ignore` and `disregard` patterns with the existing `forget` pattern structure,
+  which already handled these forms correctly. The two narrower `prior`/`earlier` patterns are
+  now redundant and have been folded into the corrected patterns.
+- Note that the built-in pattern strings are surfaced in logs and passed to custom callbacks.
+  Anything asserting on the exact pattern text for `ignore` or `disregard` needs updating.
+
 ### Removed
+
+## [0.1.9] - 2026-07-31
+
+### Fixed
+
+- Fixed `PromptInjectionGuard` failing to detect more common prompt injection phrasings.
+  `ignore all previous instructions`, `disregard all previous instructions`,
+  `ignore the previous instructions`, `disregard the previous instructions`, and
+  `ignore all previous prompts` were not matched by any built-in pattern, because the `ignore`
+  and `disregard` patterns required the noun to follow the qualifier immediately.
+- Aligned the `ignore` and `disregard` patterns with the existing `forget` pattern structure,
+  which already handled these forms correctly. The two narrower `prior`/`earlier` patterns are
+  now redundant and have been folded into the corrected patterns.
+- Note that the built-in pattern strings are surfaced in logs and passed to custom callbacks.
+  Anything asserting on the exact pattern text for `ignore` or `disregard` needs updating.
 
 ## [0.1.8] - 2026-07-23
 

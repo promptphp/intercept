@@ -21,10 +21,8 @@ class PromptInjectionGuard
      * @var array<int, string>
      */
     protected array $patterns = [
-        '/ignore\s+(?:all|previous|the)\s+(?:instructions|prompts|directives)/i',
-        '/disregard\s+(?:all|previous|the)\s+(?:instructions|prompts|directives)/i',
-        '/ignore\s+(?:(?:all|the)\s+)?(?:prior|earlier)\s+(?:instructions|prompts|directives)/i',
-        '/disregard\s+(?:(?:all|the)\s+)?(?:prior|earlier)\s+(?:instructions|prompts|directives)/i',
+        '/ignore\s+(?:(?:all|the)\s+)?(?:(?:previous|prior|earlier)\s+)?(?:instructions|prompts|directives)/i',
+        '/disregard\s+(?:(?:all|the)\s+)?(?:(?:previous|prior|earlier)\s+)?(?:instructions|prompts|directives)/i',
         '/forget\s+(?:(?:all|the)\s+)?(?:(?:previous|prior|earlier)\s+)?(?:instructions|prompts|directives)/i',
         '/(?:do\s+not|don\'t)\s+(?:follow|obey)\s+(?:(?:the|any)\s+)?(?:previous|prior|earlier|original)\s+(?:instructions|prompts|directives|rules)/i',
         '/system(?:\s+prompt)?\s*[:=]/i',
