@@ -7,7 +7,8 @@ sidebarTitle: "Configuration"
 Every middleware package includes internal defaults that can be overridden via the constructor, so you can install the package and use the middleware immediately.
 
 <Tip>
-    Publishing the config is useful when you want global defaults across your application.
+    Publishing the config is useful when you want global defaults across your
+    application.
 </Tip>
 
 ## Publish the config
@@ -84,13 +85,14 @@ Even if your config says `block` or `redact`, these constructor values take prio
 
 ### Injection Guard options
 
-| Option               | Type     | Default | Description                                                |
-| -------------------- | -------- | ------- | ---------------------------------------------------------- |
-| `action`             | `string` | `block` | How to handle detected prompt injection attempts.          |
-| `patterns`           | `array`  | `[]`    | Custom regex patterns.                                     |
-| `merge_patterns`     | `bool`   | `true`  | Whether custom patterns are merged with built-in patterns. |
-| `normalise_prompt`   | `bool`   | `true`  | Whether to normalise prompts before scanning.              |
-| `log_prompt_preview` | `bool`   | `false` | Whether logs may include a short prompt preview.           |
+| Option                    | Type     | Default | Description                                                |
+| ------------------------- | -------- | ------- | ---------------------------------------------------------- |
+| `action`                  | `string` | `block` | How to handle detected prompt injection attempts.          |
+| `patterns`                | `array`  | `[]`    | Custom regex patterns.                                     |
+| `merge_patterns`          | `bool`   | `true`  | Whether custom patterns are merged with built-in patterns. |
+| `normalise_prompt`        | `bool`   | `true`  | Whether to normalise prompts before scanning.              |
+| `log_prompt_preview`      | `bool`   | `false` | Whether logs may include a short prompt preview.           |
+| `scan_approval_decisions` | `bool`   | `true`  | Whether to scan tool approval decisions on resumed runs.   |
 
 Supported actions:
 
@@ -99,20 +101,20 @@ Supported actions:
 3. warn
 4. sanitize
 
-
 ### PII Redactor options
 
-| Option               | Type     | Default                | Description                                      |
-| -------------------- | -------- | ---------------------- | ------------------------------------------------ |
-| `action`             | `string` | `redact`               | How to handle detected PII.                      |
-| `entities`           | `array`  | supported entities     | Which entity types to detect.                    |
-| `block_entities`     | `array`  | high-risk entities     | Which entities should always block.              |
-| `allowed_emails`     | `array`  | `[]`                   | Email addresses that should not be redacted.     |
-| `allowed_domains`    | `array`  | `[]`                   | Email domains that should not be redacted.       |
-| `replacement_format` | `string` | `[{{TYPE}}_{{INDEX}}]` | Placeholder format for redaction.                |
-| `mask_character`     | `string` | `*`                    | Character used when masking values.              |
-| `log_detections`     | `bool`   | `true`                 | Whether detections should be logged.             |
-| `log_preview`        | `bool`   | `false`                | Whether logs may include a short prompt preview. |
+| Option                    | Type     | Default                | Description                                              |
+| ------------------------- | -------- | ---------------------- | -------------------------------------------------------- |
+| `action`                  | `string` | `redact`               | How to handle detected PII.                              |
+| `entities`                | `array`  | supported entities     | Which entity types to detect.                            |
+| `block_entities`          | `array`  | high-risk entities     | Which entities should always block.                      |
+| `allowed_emails`          | `array`  | `[]`                   | Email addresses that should not be redacted.             |
+| `allowed_domains`         | `array`  | `[]`                   | Email domains that should not be redacted.               |
+| `replacement_format`      | `string` | `[{{TYPE}}_{{INDEX}}]` | Placeholder format for redaction.                        |
+| `mask_character`          | `string` | `*`                    | Character used when masking values.                      |
+| `log_detections`          | `bool`   | `true`                 | Whether detections should be logged.                     |
+| `log_preview`             | `bool`   | `false`                | Whether logs may include a short prompt preview.         |
+| `scan_approval_decisions` | `bool`   | `true`                 | Whether to scan tool approval decisions on resumed runs. |
 
 Supported actions:
 
@@ -129,6 +131,21 @@ Supported entities:
 4. ip_address
 5. api_key
 6. bearer_token
+7. mac_address
+8. url
+
+## Tool approval resumes
+
+When an agent pauses for tool approval and is resumed with `Decisions`, the prompt text is empty. The new content is whatever a human supplied while resolving the pending tool calls: edited tool arguments and rejection results.
+
+Intercept scans that content by default. Resumed prompts cannot be rewritten, so actions that modify the prompt degrade to logging on this path:
+
+| Middleware      | Degrades to logging | Still blocks                      |
+| --------------- | ------------------- | --------------------------------- |
+| Injection Guard | `sanitize`, `warn`  | `block`                           |
+| PII Redactor    | `redact`, `mask`    | `block`, and any `block_entities` |
+
+Set `scan_approval_decisions` to `false` on either middleware to opt out.
 
 ## Recommended config
 

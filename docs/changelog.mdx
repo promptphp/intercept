@@ -6,7 +6,42 @@ rss: true
 
 Product updates and release notes for Intercept.
 
-<Update label="July 18, 2026" description="v0.1.7" tags={["Release"]}>
+<Update label="July 31, 2026" description="v0.2.0" tags={["Release", "Security"]}>
+    Added tool approval decision scanning to `PromptInjectionGuard` and `PIIRedactor`.
+
+    When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt. A resumed prompt carries no prompt text, so both middleware previously reported clean while the content a human supplied on the way through reached the AI provider unscanned.
+
+    Both middleware now scan that content:
+
+    - edited tool arguments, from `Decision::edit()`
+    - rejection results, from `Decision::reject()`
+
+    A paused turn must replay verbatim against the provider that recorded it, so resumed prompts cannot be rewritten. The `redact`, `mask`, `sanitize`, and `warn` actions therefore degrade to logging on this path, recorded in logs as `degraded_from`. Blocked entities and the `block` action still stop the run.
+
+    Scanning is enabled by default and can be turned off per middleware with `scan_approval_decisions`.
+
+    The documentation now also states plainly what Intercept can and cannot inspect, since tool results, attachments, and conversation history never pass through the middleware pipeline.
+</Update>
+
+<Update label="July 31, 2026" description="v0.1.9" tags={["Release", "Security", "Fix"]}>
+    Fixed `PromptInjectionGuard` failing to detect several of the most common prompt injection phrasings.
+
+    These were not matched by any built-in pattern:
+
+    - `ignore all previous instructions`
+    - `disregard all previous instructions`
+    - `ignore the previous instructions`
+    - `disregard the previous instructions`
+    - `ignore all previous prompts`
+
+    The `ignore` and `disregard` patterns required the noun to follow the qualifier immediately, so a phrase like `ignore all previous instructions` fell between them. They now use the same structure the `forget` pattern already had.
+
+    If you are on an earlier version and rely on `PromptInjectionGuard`, upgrade.
+
+    One thing to check when upgrading: the built-in pattern strings appear in log context and are passed to custom callbacks as `$detection['pattern']`. Anything asserting on the exact pattern text for `ignore` or `disregard` needs updating.
+</Update>
+
+<Update label="July 18, 2026" description="v0.1.8" tags={["Release"]}>
     Added support for PHP 8.3 across middleware collection.
 </Update>
 

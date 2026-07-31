@@ -78,6 +78,42 @@ It may miss:
 
 It may also flag values that look sensitive but are not.
 
+## What Intercept sees
+
+Intercept middleware runs on the prompt as it enters the pipeline. That defines what it can and cannot inspect.
+
+It sees:
+
+- the prompt text sent to the agent
+- edited tool arguments and rejection results supplied when resuming a paused run
+
+It does not see:
+
+- tool results returned to the model mid-run
+- attachments sent alongside the prompt
+- prior conversation history replayed from a conversation store
+- the model's response
+
+This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept. The same is true of anything the model itself produces.
+
+Guard those surfaces separately:
+
+- validate and constrain tool arguments server-side
+- treat tool results as untrusted input in your own code
+- scope tool permissions to the acting user
+- require human approval for destructive actions
+- review retrieved documents before they enter agent context
+
+## Tool approval resumes
+
+When a paused run is resumed with `Decisions`, the prompt text is empty. The new content is what a human supplied while resolving the pending tool calls, and Intercept scans it.
+
+Two limits are worth knowing.
+
+Resumed prompts are immutable, because a paused turn must replay verbatim against the provider that recorded it. Actions that rewrite the prompt cannot apply, so `redact`, `mask`, `sanitize`, and `warn` degrade to logging on this path. Only blocking genuinely stops the content.
+
+If your threat model requires that PII never reaches the provider, do not rely on `redact` alone. Add the relevant entity types to `block_entities`, or validate the edited arguments in your approval flow before they are submitted.
+
 ## Safe user-facing errors
 
 When a prompt is blocked, return a simple message.

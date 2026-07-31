@@ -463,6 +463,93 @@ public function middleware(): array
 
 When a callback is provided, it takes priority over the configured action.
 
+## Tool approval resumes
+
+When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt.
+
+A resumed prompt carries no prompt text. The only new content is what a human supplied while resolving the pending tool calls:
+
+- edited tool arguments, from `Decision::edit()`
+- rejection results, from `Decision::reject()`
+
+Both reach the AI provider, so this middleware scans them using the same detectors, Luhn validation, and email allowlists it applies to a prompt.
+
+```php
+use Laravel\Ai\Approvals\Decision;
+use Laravel\Ai\Approvals\Decisions;
+
+$response = $agent->prompt(Decisions::from([
+    'call_1' => Decision::edit([
+        'recipient' => 'victor@example.com',
+    ]),
+]));
+```
+
+The email address above is detected exactly as it would be inside a prompt.
+
+### Actions on a resumed run
+
+A paused turn must replay verbatim against the provider that recorded it, so the Laravel AI SDK makes resumed prompts immutable. `redact` and `mask` have nowhere to write their output, so they degrade to logging.
+
+| Action   | Behaviour on a resumed run |
+| -------- | -------------------------- |
+| `block`  | Blocks, as normal.         |
+| `log`    | Logs, as normal.           |
+| `redact` | Degrades to logging.       |
+| `mask`   | Degrades to logging.       |
+
+Blocked entities still stop the run regardless of the configured action. A credit card, API key, or bearer token in an edited tool argument is refused exactly as it would be in a prompt.
+
+### Reading the logs
+
+Detections found in approval decisions are logged under a distinct message, `PII detected in tool approval decisions.`, with a `source` of `approval_decisions`:
+
+```php
+[
+    'source'        => 'approval_decisions',
+    'degraded_from' => 'redact',
+    'entities'      => ['email' => 1],
+    'segments'      => [
+        [
+            'tool_call_id' => 'call_1',
+            'field'        => 'arguments.recipient',
+            'entities'     => ['email' => 1],
+        ],
+    ],
+]
+```
+
+The `degraded_from` key appears only when the run continued despite a configured action that could not be applied. A blocked run never reports it.
+
+The `field` value is a dot path into the edited arguments, so nested values are reported precisely, for example `arguments.filters.contact.email`.
+
+### Disabling approval decision scanning
+
+Scanning is enabled by default. To disable it globally:
+
+```php
+'pii_redactor' => [
+    'scan_approval_decisions' => false,
+],
+```
+
+Or for a single agent:
+
+```php
+public function middleware(): array
+{
+    return [
+        new PIIRedactor(
+            scanApprovalDecisions: false,
+        ),
+    ];
+}
+```
+
+<Warning>
+    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot be applied to a resumed run, so custom callbacks should use the detection `type` and `value` rather than `start` and `length`.
+</Warning>
+
 ## Production rollout
 
 A practical rollout path:

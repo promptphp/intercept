@@ -12,6 +12,7 @@ Most users do not need to install or use this package directly. It is installed 
 * the shared `config/intercept.php` configuration file
 * the `intercept-config` publish tag
 * the `InterceptConfig` helper for resolving middleware config
+* the `ScansApprovalDecisions` concern for inspecting resumed runs
 * the `InterceptServiceProvider` for Laravel package registration
 
 ## Installation
@@ -107,6 +108,36 @@ For example, if a user publishes `config/intercept.php` while only using Injecti
 That is fine. PII Redactor will still work using its internal defaults.
 
 Users only need to add a middleware section to `config/intercept.php` when they want to customise its global behaviour.
+
+## Scanning tool approval decisions
+
+When an agent pauses for tool approval and is resumed with `Decisions`, the prompt text is empty. The only new content is what a human supplied while resolving the pending tool calls, and it reaches the AI provider unscanned unless a middleware inspects it.
+
+The `ScansApprovalDecisions` concern extracts that content:
+
+```php
+use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
+
+class ExampleMiddleware
+{
+    use ScansApprovalDecisions;
+
+    public function handle(AgentPrompt $prompt, Closure $next): mixed
+    {
+        foreach ($this->approvalDecisionSegments($prompt->approvalDecisions) as $segment) {
+            // $segment->toolCallId, $segment->field, $segment->text
+        }
+
+        return $next($prompt);
+    }
+}
+```
+
+Each segment is an `ApprovalDecisionSegment` carrying the tool call ID, a dot path to the value, and the scannable text. Edited tool arguments are flattened recursively, so a nested value is reported as `arguments.filters.contact.email`. Rejection results are reported as `result`.
+
+Approved decisions carry no operator input and yield nothing.
+
+Resumed prompts cannot be rewritten, because a paused turn must replay verbatim against the provider that recorded it. Middleware can block or log on this path, but not modify.
 
 ## Service provider
 
