@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Log;
+use Laravel\Ai\Approvals\Decision;
+use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Prompts\AgentPrompt;
 use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
 use PromptPHP\Intercept\PIIRedactor\PIIRedactor;
@@ -14,7 +16,7 @@ afterEach(function (): void {
     Mockery::close();
 });
 
-function makePIIRedactorAgentPrompt(string $prompt): AgentPrompt
+function makePIIRedactorAgentPrompt(string $prompt, ?Decisions $approvalDecisions = null): AgentPrompt
 {
     return new AgentPrompt(
         agent: new PIIRedactorTestAgent,
@@ -22,7 +24,16 @@ function makePIIRedactorAgentPrompt(string $prompt): AgentPrompt
         attachments: [],
         provider: new PIIRedactorTestProvider,
         model: 'test-model',
+        approvalDecisions: $approvalDecisions,
     );
+}
+
+/**
+ * Build a prompt resuming a paused run, which always carries empty prompt text.
+ */
+function makePIIRedactorResumedPrompt(Decisions $approvalDecisions): AgentPrompt
+{
+    return makePIIRedactorAgentPrompt('', $approvalDecisions);
 }
 
 it('allows safe prompts to continue through the pipeline', function (): void {
@@ -679,4 +690,222 @@ it('throws an exception for unsupported actions', function (): void {
 it('throws an exception for unsupported entities', function (): void {
     expect(fn () => new PIIRedactor(entities: ['passport']))
         ->toThrow(InvalidArgumentException::class, 'Unsupported PII entity');
+});
+
+it('allows resumed runs with clean approval decisions to continue', function (): void {
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['subject' => 'Quarterly summary']),
+    ]));
+
+    $result = $redactor->handle($prompt, fn (AgentPrompt $prompt): string => 'next-called');
+
+    expect($result)->toBe('next-called');
+});
+
+it('detects PII in edited tool arguments on a resumed run', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'PII detected in tool approval decisions.'
+                && $context['source'] === 'approval_decisions'
+                && $context['entities'] === ['email' => 1]
+                && $context['segments'][0]['tool_call_id'] === 'call_1'
+                && $context['segments'][0]['field'] === 'arguments.recipient';
+        });
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('detects PII in rejection results on a resumed run', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => $context['segments'][0]['field'] === 'result');
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::reject('Cancelled, email victor@example.com instead.'),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('blocks high risk entities found in approval decisions', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
+    ]));
+
+    $nextCalled = false;
+
+    expect(fn () => $redactor->handle($prompt, function () use (&$nextCalled): string {
+        $nextCalled = true;
+
+        return 'next-called';
+    }))->toThrow(PIIRedactorException::class);
+
+    expect($nextCalled)->toBeFalse();
+});
+
+it('blocks an unquoted card number in edited tool arguments', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['card' => 4111111111111111]),
+    ]));
+
+    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+        ->toThrow(PIIRedactorException::class);
+});
+
+it('degrades redact to logging on a resumed run', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => ($context['degraded_from'] ?? null) === 'redact');
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('degrades mask to logging on a resumed run', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => ($context['degraded_from'] ?? null) === 'mask');
+
+    $redactor = new PIIRedactor(action: 'mask');
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('does not report a degraded action when the run is blocked', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => ! array_key_exists('degraded_from', $context));
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
+    ]));
+
+    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+        ->toThrow(PIIRedactorException::class);
+});
+
+it('blocks approval decision detections when the action is block', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor(action: 'block');
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+        ->toThrow(PIIRedactorException::class);
+});
+
+it('skips approval decision scanning when disabled', function (): void {
+    Log::shouldReceive('warning')->never();
+
+    $redactor = new PIIRedactor(scanApprovalDecisions: false);
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('passes approval decision detections to a custom callback', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $received = null;
+
+    $redactor = new PIIRedactor(
+        callback: function (AgentPrompt $prompt, Closure $next, RedactionResult $result) use (&$received): string {
+            $received = $result;
+
+            return 'callback-handled';
+        },
+    );
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('callback-handled');
+    expect($received->detections)->toHaveCount(1);
+    expect($received->detections[0]->type)->toBe('api_key');
+});
+
+it('includes segment previews in approval decision logs when enabled', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => $context['segments'][0]['preview'] === 'victor@example.com');
+
+    $redactor = new PIIRedactor(logPreview: true);
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    $redactor->handle($prompt, fn (): string => 'next-called');
+});
+
+it('reports detections across multiple approval decisions', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $context['entities'] === ['email' => 1, 'ip_address' => 1]
+                && count($context['segments']) === 2;
+        });
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+        'call_2' => Decision::reject('Blocked at 192.168.1.1.'),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+});
+
+it('keeps approval decision scanning enabled when an older published config omits the key', function (): void {
+    config()->set('intercept.middleware.pii_redactor', [
+        'action'      => 'redact',
+        'log_preview' => false,
+    ]);
+
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $prompt = makePIIRedactorResumedPrompt(Decisions::from([
+        'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
+    ]));
+
+    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
 });

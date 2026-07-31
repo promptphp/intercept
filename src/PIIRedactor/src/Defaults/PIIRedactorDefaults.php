@@ -30,12 +30,13 @@ final class PIIRedactorDefaults
                 'api_key',
                 'bearer_token',
             ],
-            'allowed_emails'     => [],
-            'allowed_domains'    => [],
-            'replacement_format' => '[{{TYPE}}_{{INDEX}}]',
-            'mask_character'     => '*',
-            'log_detections'     => true,
-            'log_preview'        => false,
+            'allowed_emails'          => [],
+            'allowed_domains'         => [],
+            'replacement_format'      => '[{{TYPE}}_{{INDEX}}]',
+            'mask_character'          => '*',
+            'log_detections'          => true,
+            'log_preview'             => false,
+            'scan_approval_decisions' => true,
         ];
     }
 }

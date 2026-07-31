@@ -16,10 +16,14 @@ use PromptPHP\Intercept\PIIRedactor\Enums\EntityTypes;
 use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\Detection;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\RedactionResult;
+use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
 use PromptPHP\Intercept\Support\InterceptConfig;
+use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
 class PIIRedactor
 {
+    use ScansApprovalDecisions;
+
     /**
      * The PII entities to detect.
      *
@@ -74,6 +78,11 @@ class PIIRedactor
     protected bool $logPreview = false;
 
     /**
+     * Whether to scan the tool approval decisions carried by a resumed run.
+     */
+    protected bool $scanApprovalDecisions = true;
+
+    /**
      * Custom callback for handling detected PII.
      */
     protected ?Closure $callback;
@@ -88,17 +97,18 @@ class PIIRedactor
     /**
      * Create a new PII Redactor instance.
      *
-     * @param array<int, string>|null   $entities          PII entities to detect.
-     * @param string|null               $action            What to do: 'redact', 'mask', 'block', or 'log'.
-     * @param Closure|null              $callback          Custom handler for detected PII.
-     * @param array<int, string>|null   $blockEntities     Entities that should always block.
-     * @param array<int, string>|null   $allowedEmails     Email addresses to ignore.
-     * @param array<int, string>|null   $allowedDomains    Email domains to ignore.
-     * @param string|null               $replacementFormat Replacement format for redaction.
-     * @param string|null               $maskCharacter     Character used for masking.
-     * @param bool|null                 $logDetections     Whether to log detections.
-     * @param bool|null                 $logPreview        Whether to log a short prompt preview.
-     * @param array<int, Detector>|null $detectors         Additional custom detectors.
+     * @param array<int, string>|null   $entities              PII entities to detect.
+     * @param string|null               $action                What to do: 'redact', 'mask', 'block', or 'log'.
+     * @param Closure|null              $callback              Custom handler for detected PII.
+     * @param array<int, string>|null   $blockEntities         Entities that should always block.
+     * @param array<int, string>|null   $allowedEmails         Email addresses to ignore.
+     * @param array<int, string>|null   $allowedDomains        Email domains to ignore.
+     * @param string|null               $replacementFormat     Replacement format for redaction.
+     * @param string|null               $maskCharacter         Character used for masking.
+     * @param bool|null                 $logDetections         Whether to log detections.
+     * @param bool|null                 $logPreview            Whether to log a short prompt preview.
+     * @param array<int, Detector>|null $detectors             Additional custom detectors.
+     * @param bool|null                 $scanApprovalDecisions Whether to scan tool approval decisions on resumed runs.
      */
     public function __construct(
         ?array $entities = null,
@@ -112,6 +122,7 @@ class PIIRedactor
         ?bool $logDetections = null,
         ?bool $logPreview = null,
         ?array $detectors = null,
+        ?bool $scanApprovalDecisions = null,
     ) {
         $config = InterceptConfig::middleware('pii_redactor', PIIRedactorDefaults::values());
 
@@ -124,6 +135,7 @@ class PIIRedactor
         $maskCharacter ??= $config['mask_character'];
         $logDetections ??= $config['log_detections'];
         $logPreview ??= $config['log_preview'];
+        $scanApprovalDecisions ??= $config['scan_approval_decisions'];
 
         $this->validateAction($action);
         $this->validateEntities($entities);
@@ -140,7 +152,10 @@ class PIIRedactor
         $this->maskCharacter     = mb_substr($maskCharacter, 0, 1) ?: '*';
         $this->logDetections     = $logDetections;
         $this->logPreview        = $logPreview;
-        $this->detectors         = [
+
+        $this->scanApprovalDecisions = $scanApprovalDecisions;
+
+        $this->detectors = [
             ...$this->defaultDetectors(),
             ...($detectors ?? []),
         ];
@@ -154,6 +169,10 @@ class PIIRedactor
      */
     public function handle(AgentPrompt $prompt, Closure $next): mixed
     {
+        if ($prompt->hasApprovalDecisions()) {
+            return $this->handleApprovalDecisions($prompt, $next);
+        }
+
         $result = $this->detect($prompt->prompt);
 
         if (! $result->hasDetections()) {
@@ -177,6 +196,66 @@ class PIIRedactor
             ActionTypes::MASK => $next($prompt->revise($this->mask($prompt->prompt, $result->detections)->text)),
             default           => $next($prompt->revise($this->redact($prompt->prompt, $result->detections)->text)),
         };
+    }
+
+    /**
+     * Handle a prompt resuming a paused run from tool approval decisions.
+     *
+     * A resumed prompt carries no prompt text. The only new content is what a human supplied
+     * while resolving the pending tool calls, so that is what gets scanned here.
+     *
+     * Resumed prompts are immutable by design, because a paused turn must replay verbatim
+     * against the provider that recorded it. The `redact` and `mask` actions therefore have
+     * nowhere to write their output and degrade to logging, while blocked entities and the
+     * `block` action still stop the run.
+     *
+     * @param AgentPrompt $prompt The agent being prompted.
+     * @param Closure     $next   The next middleware in the pipeline.
+     */
+    protected function handleApprovalDecisions(AgentPrompt $prompt, Closure $next): mixed
+    {
+        if (! $this->scanApprovalDecisions) {
+            return $next($prompt);
+        }
+
+        $detected   = [];
+        $detections = [];
+
+        foreach ($this->approvalDecisionSegments($prompt->approvalDecisions) as $segment) {
+            $result = $this->detect($segment->text);
+
+            if (! $result->hasDetections()) {
+                continue;
+            }
+
+            $detected[] = ['segment' => $segment, 'detections' => $result->detections];
+            $detections = [...$detections, ...$result->detections];
+        }
+
+        if ($detections === []) {
+            return $next($prompt);
+        }
+
+        $result = new RedactionResult(
+            text: $prompt->prompt,
+            detections: $detections,
+        );
+
+        $blocking = $this->hasBlockedEntity($result) || $this->action === ActionTypes::BLOCK;
+
+        if ($this->logDetections || $this->action === ActionTypes::LOG) {
+            $this->logApprovalDecisions($prompt, $detected, $blocking);
+        }
+
+        if ($this->callback !== null) {
+            return ($this->callback)($prompt, $next, $result);
+        }
+
+        if ($blocking) {
+            $this->block();
+        }
+
+        return $next($prompt);
     }
 
     /**
@@ -289,6 +368,67 @@ class PIIRedactor
         }
 
         Log::warning('PII detected in agent prompt.', $context);
+    }
+
+    /**
+     * Log PII detected in tool approval decisions safely.
+     *
+     * @param AgentPrompt                                                                            $prompt   The agent being prompted.
+     * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
+     * @param bool                                                                                   $blocking Whether the run is being stopped.
+     */
+    protected function logApprovalDecisions(AgentPrompt $prompt, array $detected, bool $blocking): void
+    {
+        $detections = [];
+        $segments   = [];
+
+        foreach ($detected as $group) {
+            $detections = [...$detections, ...$group['detections']];
+
+            $segment = [
+                'tool_call_id' => $group['segment']->toolCallId,
+                'field'        => $group['segment']->field,
+                'entities'     => $this->summariseEntities($group['detections']),
+            ];
+
+            if ($this->logPreview) {
+                $segment['preview'] = str($group['segment']->text)->limit(300)->toString();
+            }
+
+            $segments[] = $segment;
+        }
+
+        $context = [
+            'agent'        => $prompt->agent::class,
+            'provider'     => $prompt->provider()::class,
+            'model'        => $prompt->model,
+            'source'       => 'approval_decisions',
+            'entities'     => $this->summariseEntities($detections),
+            'segments'     => $segments,
+            'value_hashes' => array_map(
+                fn (Detection $detection): string => hash('sha256', $detection->value),
+                $detections,
+            ),
+            'timestamp' => now()->toIso8601String(),
+        ];
+
+        if (! $blocking && $degraded = $this->degradedAction()) {
+            $context['degraded_from'] = $degraded;
+        }
+
+        Log::warning('PII detected in tool approval decisions.', $context);
+    }
+
+    /**
+     * Get the configured action when it cannot be applied to a resumed run.
+     *
+     * @return string|null The degraded action, or null when the action needs no rewrite.
+     */
+    protected function degradedAction(): ?string
+    {
+        return in_array($this->action, [ActionTypes::REDACT, ActionTypes::MASK], true)
+            ? $this->action->value
+            : null;
     }
 
     /**
