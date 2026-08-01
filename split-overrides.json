@@ -1,5 +1,6 @@
 {
     "Support": "intercept-support",
     "InjectionGuard": "intercept-injection-guard",
-    "PIIRedactor": "intercept-pii-redactor"
+    "PIIRedactor": "intercept-pii-redactor",
+    "ToolApprovalGuard": "intercept-tool-approval-guard"
 }

@@ -9,6 +9,7 @@
             <directory>src/InjectionGuard/tests</directory>
             <directory>src/Support/tests</directory>
             <directory>src/PIIRedactor/tests</directory>
+            <directory>src/ToolApprovalGuard/tests</directory>
         </testsuite>
     </testsuites>
 
@@ -17,6 +18,7 @@
             <directory>src/InjectionGuard/src</directory>
             <directory>src/Support/src</directory>
             <directory>src/PIIRedactor/src</directory>
+            <directory>src/ToolApprovalGuard/src</directory>
         </include>
     </source>
 </phpunit>

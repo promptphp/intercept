@@ -1,0 +1,35 @@
+{
+    "name": "promptphp/intercept-tool-approval-guard",
+    "description": "Tool approval guard middleware for Laravel AI agents.",
+    "keywords": ["laravel", "ai", "middleware", "prompt", "tool-approval", "human-in-the-loop", "security"],
+    "homepage": "https://intercept.promptphp.com",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Victor Ukam",
+            "email": "victorjohnukam@gmail.com",
+            "homepage": "https://github.com/veeqtoh",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "laravel/ai": "*",
+        "promptphp/intercept-injection-guard": "*",
+        "promptphp/intercept-pii-redactor": "*",
+        "promptphp/intercept-support": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\ToolApprovalGuard\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PromptPHP\\Intercept\\ToolApprovalGuard\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
