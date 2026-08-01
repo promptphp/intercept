@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Collection;
 use Laravel\Ai\Approvals\Decision;
 use Laravel\Ai\Approvals\Decisions;
+use Laravel\Ai\Approvals\PendingApproval;
 use PromptPHP\Intercept\Support\Tests\Fixtures\ApprovalDecisionScanner;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
@@ -134,5 +136,55 @@ it('extracts segments across multiple decisions', function (): void {
 it('returns no segments for an edit that carries no arguments', function (): void {
     expect(scanApprovalDecisions(Decisions::from([
         'call_1' => Decision::edit([]),
+    ])))->toBe([]);
+});
+
+function scanPendingApprovals(?Collection $pendingApprovals): array
+{
+    return (new ApprovalDecisionScanner)->pendingSegments($pendingApprovals);
+}
+
+it('returns no segments when there are no pending approvals', function (): void {
+    expect(scanPendingApprovals(null))->toBe([]);
+    expect(scanPendingApprovals(collect()))->toBe([]);
+});
+
+it('extracts proposed tool call arguments', function (): void {
+    $segments = scanPendingApprovals(collect([
+        new PendingApproval('call_1', 'send_email', ['to' => 'victor@example.com']),
+    ]));
+
+    expect($segments)->toHaveCount(1);
+    expect($segments[0]->toolCallId)->toBe('call_1');
+    expect($segments[0]->field)->toBe('arguments.to');
+    expect($segments[0]->text)->toBe('victor@example.com');
+});
+
+it('extracts nested proposed arguments using dot paths', function (): void {
+    $segments = scanPendingApprovals(collect([
+        new PendingApproval('call_1', 'send_email', [
+            'message' => ['body' => 'Card 4111111111111111'],
+        ]),
+    ]));
+
+    expect($segments)->toHaveCount(1);
+    expect($segments[0]->field)->toBe('arguments.message.body');
+});
+
+it('extracts segments across multiple pending approvals', function (): void {
+    $segments = scanPendingApprovals(collect([
+        new PendingApproval('call_1', 'send_email', ['to' => 'victor@example.com']),
+        new PendingApproval('call_2', 'delete_record', ['id' => 42]),
+    ]));
+
+    expect($segments)->toHaveCount(2);
+    expect($segments[0]->toolCallId)->toBe('call_1');
+    expect($segments[1]->toolCallId)->toBe('call_2');
+    expect($segments[1]->text)->toBe('42');
+});
+
+it('returns no segments for a pending approval with no arguments', function (): void {
+    expect(scanPendingApprovals(collect([
+        new PendingApproval('call_1', 'list_tickets', []),
     ])))->toBe([]);
 });
