@@ -41,6 +41,21 @@ Current focus:
 - safe logging with hashes
 - optional global config through `config/intercept.php`
 
+### `promptphp/intercept-tool-approval-guard`
+
+Inspects the tool calls an agent proposes while pausing for human approval, before they are surfaced for review.
+
+This is the first middleware to act on the response rather than the prompt, because the tool calls it guards are proposed by the model rather than supplied by the user.
+
+Current focus:
+
+- tool allow and deny lists
+- PII and secret detection in proposed tool arguments, as an exfiltration signal
+- prompt injection detection in proposed tool arguments
+- `block` and `log` actions, with blocked entities overriding the action
+- safe logging with value hashes and tool call provenance
+- optional global config through `config/intercept.php`
+
 ## Proposed package roadmap
 
 I have a few ideas in mind and I've tried to prioritize them based on value and ease of implementation. This file will receieve updates as they are implemented and more ideas are conceived.

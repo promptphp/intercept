@@ -13,6 +13,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.3.0] - 2026-00-06
+
+- Added `promptphp/intercept-tool-approval-guard`, which inspects the tool calls an agent proposes
+  while pausing for human approval, before they are surfaced for review. Intercept already scans 
+  what a human edited when resolving a paused run but trusts whatever the model proposed.
+- Added tool allow and deny lists, PII and secret detection, and prompt injection detection over
+  proposed tool arguments. Sensitive data in an outbound tool argument is an exfiltration signal;
+  an injection pattern suggests the model was manipulated by content Intercept never saw.
+- Added `block` and `log` actions, `block_entities` that stop the run regardless of the action, and
+  a custom callback receiving `ApprovalFinding` value objects.
+- Added `PIIRedactor\Detectors\DefaultDetectors::all()` and `InjectionGuardDefaults::patterns()` so
+  the detector set and injection patterns can be reused without duplication. Detection behaviour is
+  unchanged and the pattern strings are byte-identical.
+- Added `pendingApprovalSegments()` to the `ScansApprovalDecisions` concern, which walks proposed
+  tool arguments using the same dot-path extraction as edited arguments.
+
+### Changed
+
+- This is the first Intercept middleware to act on the response rather than the prompt, since the
+  tool calls it guards are proposed by the model.
+- On a streamed run the guard cannot block, because `$next()` returns before the model has proposed
+  anything and the caller has received the streamed text by the time approvals are known. The
+  `block` action degrades to logging there, recorded as `degraded_from`. The tool has still not
+  executed, so a logged proposal continues to require human approval before anything happens.
+- Updated the security notes: proposed tool calls are now inspected, but tool results, attachments,
+  and conversation history still are not, and only approval-gated tools are covered.
+- Moved the credit card Luhn check into the credit card detector's own validator, matching how the
+  URL detectors already validate. The detector previously emitted every 13 to 19 digit run and
+  relied on `PIIRedactor` filtering the failures afterwards, which meant it could not be reused on
+  its own. Detection results are unchanged.
+
+### Removed
+
+- Removed the protected `PIIRedactor::passesLuhn()` method, now that the check lives in the credit
+  card detector. This only affects code that subclassed `PIIRedactor` and called it directly.
+
 ## [0.2.0] - 2026-07-31
 
 ### Added

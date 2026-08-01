@@ -134,6 +134,26 @@ Supported entities:
 7. mac_address
 8. url
 
+### Tool Approval Guard options
+
+| Option           | Type     | Default            | Description                                              |
+| ---------------- | -------- | ------------------ | -------------------------------------------------------- |
+| `action`         | `string` | `block`            | How to handle a flagged proposed tool call.              |
+| `allowed_tools`  | `array`  | `[]`               | Tools that may be proposed. Empty permits every tool.    |
+| `denied_tools`   | `array`  | `[]`               | Tools that may never be proposed.                        |
+| `scan_pii`       | `bool`   | `true`             | Whether to scan proposed arguments for PII and secrets.  |
+| `scan_injection` | `bool`   | `true`             | Whether to scan proposed arguments for injection.        |
+| `entities`       | `array`  | supported entities | Which entity types to detect in arguments.               |
+| `block_entities` | `array`  | high-risk entities | Which entities always block.                             |
+| `log_preview`    | `bool`   | `false`            | Whether logs may include a short argument preview.       |
+
+Supported actions:
+
+1. block
+2. log
+
+This middleware acts on the response rather than the prompt, because the tool calls it guards are proposed by the model. It has no mutating action, since a proposed tool call belongs to the paused turn the provider recorded.
+
 ## Tool approval resumes
 
 When an agent pauses for tool approval and is resumed with `Decisions`, the prompt text is empty. The new content is whatever a human supplied while resolving the pending tool calls: edited tool arguments and rejection results.

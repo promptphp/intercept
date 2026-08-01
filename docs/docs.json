@@ -49,7 +49,8 @@
                 "icon": "shield",
                 "pages": [
                     "middleware/injection-guard",
-                    "middleware/pii-redactor"
+                    "middleware/pii-redactor",
+                    "middleware/tool-approval-guard"
                 ]
             },
             {

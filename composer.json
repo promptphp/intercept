@@ -1,6 +1,6 @@
 {
     "name": "promptphp/intercept",
-    "description": "A modular, drop-in middleware kit for Laravel AI agents. Protect, observe, and govern your AI agents with granular, install-what-you-need middleware packages.",
+    "description": "A middleware collection for Laravel AI SDK agents providing middleware across security, observability, performance and guidance.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://intercept.promptphp.com",

