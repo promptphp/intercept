@@ -6,6 +6,21 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="August 6, 2026" description="v0.3.1" tags={["Patch", "Security"]}>
+    Narrowed the Tool Approval Guard defaults. If you installed v0.3.0, upgrade.
+
+    If you published `config/intercept.php`, this fix does not reach you automatically. Update `tool_approval_guard.entities` to ['credit_card', 'api_key', 'bearer_token']` and set `tool_approval_guard.scan_injection` to `false` by hand.
+
+    The defaults were derived from the PII Redactor entity list, which treats an email address as sensitive. That is right for a prompt and wrong for a proposed tool argument, where the address is usually the function signature. With the default `block` action, any agent owning a mail, SMS or HTTP tool had its legitimate calls blocked outright. Exfiltration is about **destination**, not presence.
+
+    - `entities` now defaults to `credit_card`, `api_key` and `bearer_token`. `email`, `phone`, `url`, `ip_address` and `mac_address` are still supported, but opt-in.
+    - `scan_injection` now defaults to `false`. Prose written for a human reader routinely matches the patterns. Enable it when a proposed argument feeds another model or agent rather than a person.
+
+    `block_entities` is unchanged, so the security floor stays where it was, and every change here loosens a default — nothing that worked on v0.3.0 stops working.
+
+    Also documented a sharp edge that was always present: `action: 'log'` is not observe-only on its own, because `block_entities` stops the run whatever the action is set to. Pair it with `blockEntities: []` for a dry run.
+</Update>
+
 <Update label="August 6, 2026" description="v0.3.0" tags={["Release", "Security"]}>
     Added `promptphp/intercept-tool-approval-guard`, a new middleware that inspects the tool calls an agent proposes while pausing for human approval, before they are surfaced for review.
 
@@ -20,8 +35,10 @@ Product updates and release notes for Intercept.
     Tool Approval Guard inspects those proposed calls. It checks three things:
 
     - whether the tool is permitted at all, via allow and deny lists
-    - whether an argument carries personal or secret-like data, which signals exfiltration
+    - whether an argument carries secret-like data such as a card number, API key or bearer token
     - whether an argument matches a prompt injection pattern, which signals the model was manipulated
+
+    In the example above it is the **card number** that flags the call, not the address — a mail tool is expected to carry an email address.
 
     It reuses the detectors and patterns from PII Redactor and Injection Guard rather than maintaining a second copy, so it inherits their behaviour exactly.
 
