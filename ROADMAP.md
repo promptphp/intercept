@@ -50,7 +50,8 @@ This is the first middleware to act on the response rather than the prompt, beca
 Current focus:
 
 - tool allow and deny lists
-- PII and secret detection in proposed tool arguments, as an exfiltration signal
+- secret detection in proposed tool arguments, as an exfiltration signal; contact data and
+  locators are supported but opt-in, because they are usually the tool's own parameters
 - prompt injection detection in proposed tool arguments
 - `block` and `log` actions, with blocked entities overriding the action
 - safe logging with value hashes and tool call provenance

@@ -141,9 +141,9 @@ Supported entities:
 | `action`         | `string` | `block`            | How to handle a flagged proposed tool call.              |
 | `allowed_tools`  | `array`  | `[]`               | Tools that may be proposed. Empty permits every tool.    |
 | `denied_tools`   | `array`  | `[]`               | Tools that may never be proposed.                        |
-| `scan_pii`       | `bool`   | `true`             | Whether to scan proposed arguments for PII and secrets.  |
-| `scan_injection` | `bool`   | `true`             | Whether to scan proposed arguments for injection.        |
-| `entities`       | `array`  | supported entities | Which entity types to detect in arguments.               |
+| `scan_pii`       | `bool`   | `true`             | Whether to scan proposed arguments for secret-like data. |
+| `scan_injection` | `bool`   | `false`            | Whether to scan proposed arguments for injection.        |
+| `entities`       | `array`  | high-risk entities | Which entity types to detect in arguments.               |
 | `block_entities` | `array`  | high-risk entities | Which entities always block.                             |
 | `log_preview`    | `bool`   | `false`            | Whether logs may include a short argument preview.       |
 
@@ -151,6 +151,10 @@ Supported actions:
 
 1. block
 2. log
+
+Unlike the PII Redactor, `entities` defaults to only the high-risk set — `credit_card`, `api_key` and `bearer_token`. Contact data and locators are supported but opt-in, because in a proposed tool argument they are usually the tool's own parameters rather than an exfiltration signal. `scan_injection` is off by default for the same reason. See the [Tool Approval Guard guide](/middleware/tool-approval-guard#secret-like-data).
+
+Note that `block_entities` stops the run whatever `action` is set to, so `action: 'log'` is only observe-only if you also set `block_entities` to `[]`.
 
 This middleware acts on the response rather than the prompt, because the tool calls it guards are proposed by the model. It has no mutating action, since a proposed tool call belongs to the paused turn the provider recorded.
 
