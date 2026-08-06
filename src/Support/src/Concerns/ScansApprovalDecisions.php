@@ -4,22 +4,55 @@ declare(strict_types=1);
 
 namespace PromptPHP\Intercept\Support\Concerns;
 
+use Illuminate\Support\Collection;
 use Laravel\Ai\Approvals\Decision;
 use Laravel\Ai\Approvals\Decisions;
+use Laravel\Ai\Approvals\PendingApproval;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
 /**
  * Trait ScansApprovalDecisions.
  *
- * Extracts the operator-supplied text carried by tool approval decisions.
+ * Extracts the scannable text carried by both ends of a tool approval cycle.
  *
- * When a paused agent run is resumed, the prompt text is empty and the only new content
- * is whatever a human supplied while resolving the pending tool calls: edited tool
- * arguments and rejection results. Those values reach the AI provider unscanned unless a
- * middleware inspects them here.
+ * When an agent pauses for approval, the model proposes tool calls whose arguments may have
+ * been shaped by content Intercept never sees, such as tool results or retrieved documents.
+ * When the run is resumed, the prompt text is empty and the only new content is whatever a
+ * human supplied while resolving those calls: edited tool arguments and rejection results.
+ *
+ * Both reach the AI provider unscanned unless a middleware inspects them here.
  */
 trait ScansApprovalDecisions
 {
+    /**
+     * Extract the scannable text segments from a set of pending tool approvals.
+     *
+     * These are the tool calls the model proposed, before any human has resolved them.
+     * The segment's tool call ID is the pending approval ID, so a caller can map a finding
+     * back to the approval and its tool name.
+     *
+     * @param Collection<int, PendingApproval>|null $pendingApprovals The proposed tool calls.
+     *
+     * @return array<int, ApprovalDecisionSegment>
+     */
+    protected function pendingApprovalSegments(?Collection $pendingApprovals): array
+    {
+        if ($pendingApprovals === null) {
+            return [];
+        }
+
+        $segments = [];
+
+        foreach ($pendingApprovals as $approval) {
+            $segments = [
+                ...$segments,
+                ...$this->segmentsForArguments($approval->id, $approval->arguments),
+            ];
+        }
+
+        return $segments;
+    }
+
     /**
      * Extract the scannable text segments from a set of tool approval decisions.
      *

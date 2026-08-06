@@ -137,6 +137,14 @@ Each segment is an `ApprovalDecisionSegment` carrying the tool call ID, a dot pa
 
 Approved decisions carry no operator input and yield nothing.
 
+The same concern extracts the other end of the approval cycle, the tool calls the model proposed before any human resolved them:
+
+```php
+foreach ($this->pendingApprovalSegments($response->pendingApprovals) as $segment) {
+    // $segment->toolCallId is the pending approval ID
+}
+```
+
 Resumed prompts cannot be rewritten, because a paused turn must replay verbatim against the provider that recorded it. Middleware can block or log on this path, but not modify.
 
 ## Service provider

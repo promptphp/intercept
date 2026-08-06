@@ -156,5 +156,81 @@ return [
              */
             'scan_approval_decisions' => true,
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tool Approval Guard Middleware
+        |--------------------------------------------------------------------------
+        |
+        | The Tool Approval Guard middleware inspects the tool calls an agent proposes
+        | while pausing for human approval, before they are surfaced for review.
+        |
+        | Unlike the other middleware, this one acts on the response, because the tool
+        | calls it guards are proposed by the model rather than supplied by the user.
+        |
+        */
+        'tool_approval_guard' => [
+
+            /*
+             * The action to take when a proposed tool call is flagged.
+             * Supported values: 'block', 'log'.
+             *
+             * There is no mutating action. A proposed tool call is part of the paused turn
+             * the provider recorded, so rewriting it would desynchronise the resumed run.
+             */
+            'action' => 'block',
+
+            /**
+             * The tools that may be proposed. An empty list permits every tool.
+             */
+            'allowed_tools' => [],
+
+            /**
+             * The tools that may never be proposed.
+             */
+            'denied_tools' => [],
+
+            /**
+             * Whether to scan proposed arguments for personal and secret-like data.
+             * Sensitive data in an outbound tool argument is an exfiltration signal.
+             */
+            'scan_pii' => true,
+
+            /**
+             * Whether to scan proposed arguments for prompt injection patterns.
+             * A match suggests the model was manipulated by content the middleware never saw.
+             */
+            'scan_injection' => true,
+
+            /**
+             * The entities that should be detected in proposed arguments.
+             * Defaults to the PII Redactor entity list.
+             */
+            'entities' => [
+                'email',
+                'phone',
+                'credit_card',
+                'ip_address',
+                'api_key',
+                'bearer_token',
+                'mac_address',
+                'url',
+            ],
+
+            /**
+             * The entities that should always block, regardless of the action above.
+             */
+            'block_entities' => [
+                'credit_card',
+                'api_key',
+                'bearer_token',
+            ],
+
+            /**
+             * Whether to include a short argument preview in logs.
+             * Matched values are always logged as hashes regardless of this setting.
+             */
+            'log_preview' => false,
+        ],
     ],
 ];

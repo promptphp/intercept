@@ -86,15 +86,18 @@ It sees:
 
 - the prompt text sent to the agent
 - edited tool arguments and rejection results supplied when resuming a paused run
+- the tool calls the model proposes for approval, with [Tool Approval Guard](/middleware/tool-approval-guard) installed
 
 It does not see:
 
 - tool results returned to the model mid-run
 - attachments sent alongside the prompt
 - prior conversation history replayed from a conversation store
-- the model's response
+- the model's response text
 
-This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept. The same is true of anything the model itself produces.
+This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept.
+
+Tool Approval Guard narrows that gap but does not close it. It inspects what the model *proposed* after reading poisoned content, which is where the damage usually surfaces, but it cannot inspect the poisoned content itself. It also only applies to tools that are approval-gated. A tool that runs without approval is never inspected.
 
 Guard those surfaces separately:
 

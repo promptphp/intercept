@@ -1,6 +1,6 @@
 {
     "name": "promptphp/intercept",
-    "description": "A modular, drop-in middleware kit for Laravel AI agents. Protect, observe, and govern your AI agents with granular, install-what-you-need middleware packages.",
+    "description": "A middleware collection for Laravel AI SDK agents providing middleware across security, observability, performance and guidance.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://intercept.promptphp.com",
@@ -44,14 +44,16 @@
     "replace": {
         "promptphp/intercept-injection-guard": "self.version",
         "promptphp/intercept-pii-redactor": "self.version",
-        "promptphp/intercept-support": "self.version"
+        "promptphp/intercept-support": "self.version",
+        "promptphp/intercept-tool-approval-guard": "self.version"
     },
     "autoload": {
         "psr-4": {
             "PromptPHP\\Intercept\\": "src/",
             "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/",
             "PromptPHP\\Intercept\\PIIRedactor\\": "src/PIIRedactor/src/",
-            "PromptPHP\\Intercept\\Support\\": "src/Support/src/"
+            "PromptPHP\\Intercept\\Support\\": "src/Support/src/",
+            "PromptPHP\\Intercept\\ToolApprovalGuard\\": "src/ToolApprovalGuard/src/"
         }
     },
     "autoload-dev": {
@@ -60,6 +62,7 @@
             "PromptPHP\\Intercept\\PIIRedactor\\Tests\\": "src/PIIRedactor/tests/",
             "PromptPHP\\Intercept\\Support\\Tests\\": "src/Support/tests/",
             "PromptPHP\\Intercept\\Tests\\": "tests/",
+            "PromptPHP\\Intercept\\ToolApprovalGuard\\Tests\\": "src/ToolApprovalGuard/tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -99,6 +102,7 @@
         "test:injection-guard": "vendor/bin/pest src/InjectionGuard/tests",
         "test:pii-redactor": "vendor/bin/pest src/PIIRedactor/tests",
         "test:support": "vendor/bin/pest src/Support/tests",
+        "test:tool-approval-guard": "vendor/bin/pest src/ToolApprovalGuard/tests",
         "format": "vendor/bin/pint",
         "test:types": "vendor/bin/phpstan analyse",
         "test:lint": [
