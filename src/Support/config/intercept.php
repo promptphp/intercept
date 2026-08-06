@@ -177,6 +177,9 @@ return [
              *
              * There is no mutating action. A proposed tool call is part of the paused turn
              * the provider recorded, so rewriting it would desynchronise the resumed run.
+             *
+             * 'block_entities' below stops the run whatever this is set to, so an observe-only
+             * rollout needs 'log' here and an empty 'block_entities'.
              */
             'action' => 'block',
 
@@ -191,30 +194,30 @@ return [
             'denied_tools' => [],
 
             /**
-             * Whether to scan proposed arguments for personal and secret-like data.
-             * Sensitive data in an outbound tool argument is an exfiltration signal.
+             * Whether to scan proposed arguments for secret-like data.
+             * A key or a card number in an outbound argument is a strong exfiltration signal.
              */
             'scan_pii' => true,
 
             /**
              * Whether to scan proposed arguments for prompt injection patterns.
-             * A match suggests the model was manipulated by content the middleware never saw.
+             *
+             * Off by default: prose written for a human reader routinely matches the patterns.
+             * Enable it when an argument feeds another model or agent rather than a person.
              */
-            'scan_injection' => true,
+            'scan_injection' => false,
 
             /**
              * The entities that should be detected in proposed arguments.
-             * Defaults to the PII Redactor entity list.
+             *
+             * Narrower than the PII Redactor list by design. In a proposed argument an email
+             * address is usually the tool's own parameter, not an exfiltration signal. Adding
+             * 'email', 'phone', 'url', 'ip_address' or 'mac_address' will flag legitimate calls.
              */
             'entities' => [
-                'email',
-                'phone',
                 'credit_card',
-                'ip_address',
                 'api_key',
                 'bearer_token',
-                'mac_address',
-                'url',
             ],
 
             /**
