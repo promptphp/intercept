@@ -13,14 +13,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [0.3.0] - 2026-00-06
+## [0.3.1] - 2026-08-06
+
+### Fixed
+
+- Narrowed the Tool Approval Guard default entity list to `credit_card`, `api_key` and
+  `bearer_token`. It was derived from the PII Redactor list, so with the default `block` action any
+  agent owning a mail, SMS or HTTP tool had legitimate calls blocked. `email`, `phone`, `url`,
+  `ip_address` and `mac_address` remain supported but are now opt-in.
+
+  If you published `config/intercept.php`, this fix does not reach you automatically. Update `tool_approval_guard.entities`
+  to ['credit_card', 'api_key', 'bearer_token']`and set`tool_approval_guard.scan_injection`to`false` by hand.
+
+- Changed the Tool Approval Guard `scan_injection` default to `false`. Prose written for a human
+  reader routinely matches the injection patterns. Enable it when a proposed argument feeds another
+  model or agent rather than a person.
+- `ToolApprovalGuardDefaults` no longer derives its entity lists from `PIIRedactorDefaults`, with an
+  architecture test pinning them apart.
+
+Both changes only loosen defaults, so nothing that worked on v0.3.0 stops working. `block_entities`
+is unchanged and still stops the run regardless of the configured action.
+
+### Changed
+
+- Documented that `action: 'log'` is not observe-only on its own, because `block_entities` stops the
+  run whatever the action is set to. A dry run needs an empty `block_entities` as well.
+- Corrected README, docs and roadmap wording implying that any sensitive-looking value in an
+  outbound tool argument is an exfiltration signal.
+
+## [0.3.0] - 2026-08-06
 
 - Added `promptphp/intercept-tool-approval-guard`, which inspects the tool calls an agent proposes
-  while pausing for human approval, before they are surfaced for review. Intercept already scans 
+  while pausing for human approval, before they are surfaced for review. Intercept already scans
   what a human edited when resolving a paused run but trusts whatever the model proposed.
 - Added tool allow and deny lists, PII and secret detection, and prompt injection detection over
-  proposed tool arguments. Sensitive data in an outbound tool argument is an exfiltration signal;
-  an injection pattern suggests the model was manipulated by content Intercept never saw.
+  proposed tool arguments. A secret in an outbound tool argument is an exfiltration signal; an
+  injection pattern suggests the model was manipulated by content Intercept never saw.
 - Added `block` and `log` actions, `block_entities` that stop the run regardless of the action, and
   a custom callback receiving `ApprovalFinding` value objects.
 - Added `PIIRedactor\Detectors\DefaultDetectors::all()` and `InjectionGuardDefaults::patterns()` so
