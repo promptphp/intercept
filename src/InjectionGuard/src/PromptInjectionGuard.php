@@ -110,6 +110,8 @@ class PromptInjectionGuard
      * @param Closure     $next   The next middleware in the pipeline.
      *
      * @return mixed
+     *
+     * @psalm-taint-escape llm_prompt
      */
     public function handle(AgentPrompt $prompt, Closure $next)
     {
