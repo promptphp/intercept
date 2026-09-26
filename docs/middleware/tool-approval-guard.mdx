@@ -110,7 +110,7 @@ Entities listed in `block_entities` stop the run regardless of the configured ac
 
 ### Prompt injection patterns
 
-A proposed argument that matches an injection pattern suggests the model was manipulated by content the middleware never saw. Uses the same patterns as [Injection Guard](/middleware/injection-guard).
+A proposed argument that matches an injection pattern suggests the model was manipulated by content the middleware never saw. It uses the same patterns as [Injection Guard](/middleware/injection-guard).
 
 **This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match, such as "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
 
