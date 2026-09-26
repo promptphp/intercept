@@ -96,7 +96,7 @@ Names, addresses, passports, national insurance numbers, and medical identifiers
 
 No configuration is required. The middleware works out of the box using safe internal defaults.
 
-The defaults may be overridden via the constructor or via the shared `config/intercept.php` file, published with:
+You can override the defaults via the constructor or via the shared `config/intercept.php` file. Publish it with:
 
 ```bash
 php artisan vendor:publish --tag=intercept-config
@@ -106,7 +106,7 @@ Explore the [configuration guide](/configuration) for more details on how to con
 
 ### Configuration priority
 
-Configuration is resolved in this order:
+Intercept resolves configuration in this order:
 
 ```mermaid placement="top-right"
    flowchart LR
@@ -262,10 +262,10 @@ public function middleware(): array
 }
 ```
 
-If PII is detected, the middleware throws a `PIIRedactorException`.
+If the middleware detects PII, it throws a `PIIRedactorException`.
 
 <Tip>
-    You may also catch the parent exception class `InterceptException` throwable by all Intercept middleware.
+    You can also catch `InterceptException`, the parent exception class that all Intercept middleware throw.
 </Tip>
 
 ```php
@@ -282,7 +282,7 @@ try {
 
 ### Blocked entities
 
-Some entities are treated as high-risk and are blocked by default, even when the action is `redact`.
+The middleware treats some entities as high-risk and blocks them by default, even when the action is `redact`.
 
 Default blocked entities:
 
@@ -294,7 +294,7 @@ Default blocked entities:
 ]
 ```
 
-This means a prompt containing a supported API key or bearer token will be blocked by default.
+This means the middleware blocks a prompt containing a supported API key or bearer token by default.
 
 You can override blocked entities:
 
@@ -461,11 +461,11 @@ public function middleware(): array
 }
 ```
 
-When a callback is provided, it takes priority over the configured action.
+When you provide a callback, it takes priority over the configured action.
 
 ## Tool approval resumes
 
-When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt.
+When an agent pauses for tool approval, you resume the run by passing `Decisions` back to the agent instead of a new prompt.
 
 A resumed prompt carries no prompt text. The only new content is what a human supplied while resolving the pending tool calls:
 
@@ -547,7 +547,7 @@ public function middleware(): array
 ```
 
 <Warning>
-    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot be applied to a resumed run, so custom callbacks should use the detection `type` and `value` rather than `start` and `length`.
+    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot apply to a resumed run. Custom callbacks should use the detection `type` and `value` rather than `start` and `length`.
 </Warning>
 
 ## Production rollout

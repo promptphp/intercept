@@ -12,8 +12,8 @@ The [Laravel AI SDK's](https://laravel.com/docs/13.x/ai) agent class supports mi
 Intercept is a collection of middleware for your Laravel AI agents.
 
 <Tip>
-    Each Intercept middleware can be installed independently. You may choose to
-    install only the middleware you need, or you can install the full collection.
+    You can install each Intercept middleware independently. Install only the
+    middleware you need, or install the full collection.
 </Tip>
 
 ## How it works
@@ -45,15 +45,15 @@ PII Redactor detects structured sensitive values such as IP addresses and can ta
 
 ## Configuration style
 
-Intercept uses one shared config file `config/intercept.php` publishable with:
+Intercept uses one shared config file, `config/intercept.php`, which you can publish with:
 
 ```bash
 php artisan vendor:publish --tag=intercept-config
 ```
 
-Every middleware works without publishing config. Published config is only needed when you want global defaults.
+Every middleware works without publishing config. You only need to publish config when you want global defaults.
 
-Configuration is resolved in this order:
+Intercept resolves configuration in this order:
 
 ```text
 constructor value > config value > internal middleware default
