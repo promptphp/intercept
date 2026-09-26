@@ -12,13 +12,13 @@ Product updates and release notes for Intercept.
 
     This is a precaution, not a fix for a known failure.
 
-    If you already run `laravel/ai` v1.0, stay on Intercept `v0.3.1` until the next release. Composer refuses the  upgrade otherwise, or it downgrades `laravel/ai`.
+    If you already run `laravel/ai` v1.0, stay on Intercept `v0.3.1` until the next release. Composer refuses the upgrade otherwise, or it downgrades `laravel/ai`.
 </Update>
 
 <Update label="August 6, 2026" description="v0.3.1" tags={["Patch", "Security"]}>
     Narrowed the Tool Approval Guard defaults. If you installed v0.3.0, upgrade.
 
-    If you published `config/intercept.php`, this fix does not reach you automatically. Update `tool_approval_guard.entities` to ['credit_card', 'api_key', 'bearer_token']` and set `tool_approval_guard.scan_injection` to `false` by hand.
+    If you published `config/intercept.php`, this fix does not reach you automatically. Update `tool_approval_guard.entities` to `['credit_card', 'api_key', 'bearer_token']` and set `tool_approval_guard.scan_injection` to `false` by hand.
 
     The defaults were derived from the PII Redactor entity list, which treats an email address as sensitive. That is right for a prompt and wrong for a proposed tool argument, where the address is usually the function signature. With the default `block` action, any agent owning a mail, SMS or HTTP tool had its legitimate calls blocked outright. Exfiltration is about **destination**, not presence.
 
@@ -92,7 +92,7 @@ Product updates and release notes for Intercept.
 </Update>
 
 <Update label="July 18, 2026" description="v0.1.8" tags={["Release"]}>
-    Added support for PHP 8.3 across middleware collection.
+    Added support for PHP 8.3 across the middleware collection.
 </Update>
 
 <Update label="July 18, 2026" description="v0.1.7" tags={["Release", "PII Redaction"]}>
