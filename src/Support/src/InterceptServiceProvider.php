@@ -34,8 +34,6 @@ final class InterceptServiceProvider extends ServiceProvider
             __DIR__.'/../config/intercept.php' => config_path('intercept.php'),
         ], 'intercept-config');
 
-        // The dispatcher matches listeners by class and interface, not by parent class, so
-        // the streaming event needs its own registration.
         Event::listen(PromptingAgent::class, InspectApprovalDecisions::class);
         Event::listen(StreamingAgent::class, InspectApprovalDecisions::class);
     }

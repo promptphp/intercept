@@ -103,7 +103,7 @@ final class PromptInjectionGuardTestProvider implements TextProvider
     {
         return [];
     }
-    
+
     /**
      * {@inheritDoc}
      */
