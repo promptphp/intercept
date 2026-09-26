@@ -6,6 +6,14 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="September 26, 2026" description="v0.3.2" tags={["Patch", "Dependencies"]}>
+    Limited `laravel/ai` dependency to `<1.0` in the main package and in every split package.
+
+    This is a precaution, not a fix for a known failure.
+
+    If you already run `laravel/ai` v1.0, stay on Intercept `v0.3.1` until the next release. Composer refuses the  upgrade otherwise, or it downgrades `laravel/ai`.
+</Update>
+
 <Update label="August 6, 2026" description="v0.3.1" tags={["Patch", "Security"]}>
     Narrowed the Tool Approval Guard defaults. If you installed v0.3.0, upgrade.
 
