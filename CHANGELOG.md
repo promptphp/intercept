@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.3.2] - 2026-09-26
+
+### Changed
+
+- Limited `laravel/ai` to `<1.0` in the main package and every split package. The constraint was `*`, which accepts any future release.
+
+This is a precaution, not a fix for a known failure. The test suite passes against `laravel/ai`
+v1.0.0. A later release can raise the bound after Intercept integrates v1.0 support.
+
+If you already run `laravel/ai` v1.0, stay on Intercept `v0.3.1` until the next release. Composer refuses the
+upgrade otherwise, or it downgrades `laravel/ai`.
+
 ## [0.3.1] - 2026-08-06
 
 ### Fixed
