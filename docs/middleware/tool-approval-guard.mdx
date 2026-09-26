@@ -158,13 +158,22 @@ There is deliberately no mutating action. A proposed tool call is part of the pa
     `block`.
 </Warning>
 
+## When it runs
+
+The Laravel AI SDK runs agent middleware once for each generation step. This middleware inspects each step when the step resolves. That is before the SDK turns the gated tool calls into pending approvals.
+
+It inspects two kinds of proposal:
+
+- tool calls to a local tool whose approval rule asks for approval
+- approvals that the provider reports itself
+
+A tool call that runs without approval is not inspected.
+
 ## Streaming
 
-On a streamed run, the middleware cannot block. `$next()` returns before the model has proposed anything, and by the time the completion hook fires the caller has already received the streamed text.
+On a streamed run, `block` works as it does on a synchronous run. The exception stops the stream before the approval request event, so the client never receives the approval request and no tool runs.
 
-The action therefore degrades to logging, recorded as `degraded_from`, matching the pattern used for tool approval resumes.
-
-The security outcome still holds: the tool has **not** executed. Approval is a separate later call, so a logged-but-unblocked proposal still requires a human to act on it before anything happens.
+The text and tool call events of that step reach the client before the exception. Handle the exception in your stream consumer.
 
 ## Blocked runs
 
@@ -192,8 +201,13 @@ Findings are logged with a `source` of `pending_approvals`:
 
 ```php
 [
-    'source'   => 'pending_approvals',
-    'findings' => [
+    'agent'         => SupportAgent::class,
+    'provider'      => 'openai',
+    'model'         => 'gpt-5',
+    'step'          => 0,
+    'invocation_id' => '0199...',
+    'source'        => 'pending_approvals',
+    'findings'      => [
         [
             'tool_call_id' => 'call_1',
             'tool'         => 'send_email',
@@ -212,16 +226,17 @@ The `type` is one of `denied_tool`, `pii`, or `injection`. The `detail` carries 
 
 ## Custom callback handling
 
-A callback receives the prompt, the response, and the findings, and fully replaces the configured action:
+A callback receives the step, the step response, and the findings, and fully replaces the configured action. The return value is ignored, so throw to stop the run:
 
 ```php
+use Laravel\Ai\Gateway\StepResponse;
+use Laravel\Ai\PendingStep;
+
 new ToolApprovalGuard(
-    callback: function (AgentPrompt $prompt, $response, array $findings) {
+    callback: function (PendingStep $step, StepResponse $response, array $findings): void {
         foreach ($findings as $finding) {
             SecurityAlert::dispatch($finding->reference(), $finding->type->value);
         }
-
-        return $response;
     },
 )
 ```
@@ -252,5 +267,7 @@ See the [configuration guide](/configuration) for the full option list.
 This middleware inspects the tool calls the model proposed. It does not inspect the tool results, retrieved documents, or conversation history that may have influenced them. Those never reach the middleware pipeline.
 
 It also does not validate arguments against the tool's schema, or re-scope owner keys such as `user_id` server-side. Do that in your own tool implementations.
+
+The middleware calls `shouldRequestApproval()` on each gated tool, and the SDK calls it again. Keep that method free of side effects.
 
 Read the [security notes](/guides/security-notes) for the full picture of what Intercept can and cannot see.

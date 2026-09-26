@@ -7,6 +7,27 @@ rss: true
 
 Product updates and release notes for Intercept.
 
+<Update label="September 27, 2026" description="v1.0.0" tags={["Major", "Breaking"]}>
+    Supports `laravel/ai` v1.0. The SDK now runs agent middleware once per generation step, not once per prompt.
+
+    <Warning>
+        **Breaking changes.** If you used custom callbacks and log parsers, you must update them before you upgrade.
+
+        - Requires `laravel/ai` ^1.0.
+        - `handle()` takes a `Laravel\Ai\PendingStep`, not an `AgentPrompt`.
+        - Callbacks receive the step: `($step, $next, $detection)` for Injection Guard, `($step, $next, $result)` for PII Redactor, and `($step, $response, $findings)` for Tool Approval Guard.
+        - Prompt callbacks run on every step. Check `$step->isFirstStep()` to act once per run.
+        - On a resumed run, and in Tool Approval Guard, the callback return value is ignored. Throw to block.
+        - The `provider` log key holds the provider name, not the class.
+    </Warning>
+
+    - **Earlier decision scanning.** Approval decisions are scanned before the SDK applies them. A block now stops approved or edited tool calls before they run.
+    - **Full history redaction.** PII Redactor redacts every user message on every step, including history replayed from a conversation store.
+    - **Streamed runs blocked.** Tool Approval Guard now blocks streamed runs.
+
+    The SDK still stores the original prompt and builds the conversation title from it. Middleware can not redact either.
+</Update>
+
 <Update label="September 26, 2026" description="v0.3.2" tags={["Patch", "Dependencies"]}>
     Limited `laravel/ai` dependency to `<1.0` in the main package and in every split package.
 

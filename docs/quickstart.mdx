@@ -8,7 +8,7 @@ This guide shows the fastest way to install Intercept and add middleware to a La
 
 ## Requirements
 
-Intercept requires PHP 8.3+ and `laravel/ai`.
+Intercept requires PHP 8.3+ and `laravel/ai` ^1.0.
 
 ## Installation
 
@@ -74,7 +74,7 @@ class SupportAgent implements Agent, HasMiddleware
 }
 ```
 
-The middleware runs before the prompt reaches the AI provider.
+The middleware runs on each generation step, before the step reaches the AI provider.
 
 ## Test prompt injection handling
 

@@ -7,11 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-27
+
+Supports `laravel/ai` v1.0. The SDK now runs agent middleware once per generation step, not once
+per prompt. See the breaking changes below before you upgrade.
+
+### Breaking
+
+- Requires `laravel/ai` ^1.0.
+- `handle()` takes a `Laravel\Ai\PendingStep`, not an `AgentPrompt`.
+- New callback signatures:
+  - `PromptInjectionGuard`: `(PendingStep $step, Closure $next, array $detection)`
+  - `PIIRedactor`: `(PendingStep $step, Closure $next, RedactionResult $result)`
+  - `ToolApprovalGuard`: `(PendingStep $step, StepResponse $response, array $findings)`. Return value ignored. Throw to block.
+  - On a resumed run, the `PromptInjectionGuard` and `PIIRedactor` callbacks receive `(AgentPrompt $prompt, null, ...)`. Return value ignored. Throw to block.
+- Prompt callbacks run on every step. Check `$step->isFirstStep()` to act once per run.
+- Log key `provider` holds the provider name, not the class.
+
 ### Added
+
+- Approval decisions are scanned before the SDK applies them, so a block stops approved or edited tool calls before they run.
+- `InspectsApprovalDecisions` contract and `InspectsPendingSteps` concern in `promptphp/intercept-support`.
+- Log keys `step` and `invocation_id`.
 
 ### Changed
 
-### Removed
+- `PIIRedactor` redacts every user message on every step, including history replayed from a conversation store.
+- `PromptInjectionGuard` applies `sanitize` and `warn` on every step.
+- `ToolApprovalGuard` blocks streamed runs. `degraded_from` no longer appears in its logs.
+
+### Known limitations
+
+- The SDK stores the original prompt and builds the conversation title from it. Middleware can not redact either.
+- A streamed `ToolApprovalGuard` block happens after that step's text reaches the client. No tool runs.
 
 ## [0.3.2] - 2026-09-26
 

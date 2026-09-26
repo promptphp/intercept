@@ -81,20 +81,22 @@ It may also flag values that look sensitive but are not.
 
 ## What Intercept sees
 
-Intercept middleware runs on the prompt as it enters the pipeline. That defines what it can and cannot inspect.
+The Laravel AI SDK runs Intercept middleware once for each generation step, before the step reaches the provider. That defines what it can and cannot inspect.
 
 It sees:
 
 - the prompt text sent to the agent
+- prior user messages replayed from a conversation store, which PII Redactor redacts
 - edited tool arguments and rejection results supplied when resuming a paused run
 - the tool calls the model proposes for approval, with [Tool Approval Guard](/middleware/tool-approval-guard) installed
 
-It does not see:
+It does not scan:
 
 - tool results returned to the model mid-run
 - attachments sent alongside the prompt
-- prior conversation history replayed from a conversation store
 - the model's response text
+
+It can not change what the SDK stores. The conversation store keeps the original prompt, and the SDK builds the conversation title from it.
 
 This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept.
 
@@ -110,7 +112,7 @@ Guard those surfaces separately:
 
 ## Tool approval resumes
 
-When a paused run is resumed with `Decisions`, the prompt text is empty. The new content is what a human supplied while resolving the pending tool calls, and Intercept scans it.
+When a paused run is resumed with `Decisions`, the prompt text is empty. The new content is what a human supplied while resolving the pending tool calls, and Intercept scans it. The scan runs before the SDK executes any approved or edited tool call.
 
 Two limits are worth knowing.
 

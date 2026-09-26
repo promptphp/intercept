@@ -116,22 +116,34 @@ When an agent pauses for tool approval and is resumed with `Decisions`, the prom
 The `ScansApprovalDecisions` concern extracts that content:
 
 ```php
+use Laravel\Ai\PendingStep;
+use Laravel\Ai\Prompts\AgentPrompt;
 use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
+use PromptPHP\Intercept\Support\Contracts\InspectsApprovalDecisions;
 
-class ExampleMiddleware
+class ExampleMiddleware implements InspectsApprovalDecisions
 {
     use ScansApprovalDecisions;
 
-    public function handle(AgentPrompt $prompt, Closure $next): mixed
+    public function handle(PendingStep $step, Closure $next): mixed
+    {
+        return $next($step);
+    }
+
+    public function inspectApprovalDecisions(AgentPrompt $prompt): void
     {
         foreach ($this->approvalDecisionSegments($prompt->approvalDecisions) as $segment) {
             // $segment->toolCallId, $segment->field, $segment->text
         }
-
-        return $next($prompt);
     }
 }
 ```
+
+The SDK applies approval decisions before the first step of the resumed run, so no step middleware sees them first. `InterceptServiceProvider` registers a listener on the SDK `PromptingAgent` and `StreamingAgent` events. The listener calls `inspectApprovalDecisions()` on each agent middleware that implements `InspectsApprovalDecisions`, before any approved or edited tool call executes. Throw from that method to stop the run.
+
+The first step of a resumed run ends with the tool results that the decisions produced. `resumedApprovalSegments($step)` extracts the rejection text and the edited arguments from that step. Use it as a second check. `ApprovalDecisionLedger::wasInspected($step->invocationId)` tells you whether the listener already inspected the run.
+
+The `InspectsPendingSteps` concern reads the step: `startsNewTurn()`, `resumesFromApproval()`, `latestUserMessage()`, `mapUserMessages()`, and `stepLogContext()`.
 
 Each segment is an `ApprovalDecisionSegment` carrying the tool call ID, a dot path to the value, and the scannable text. Edited tool arguments are flattened recursively, so a nested value is reported as `arguments.filters.contact.email`. Rejection results are reported as `result`.
 
@@ -157,6 +169,7 @@ PromptPHP\Intercept\Support\InterceptServiceProvider::class
 
 The provider:
 
+* registers the approval decision listener and the `ApprovalDecisionLedger`
 * merges the default `intercept` config
 * exposes the `intercept-config` publish tag
 
