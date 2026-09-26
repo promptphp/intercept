@@ -24,7 +24,7 @@ Product updates and release notes for Intercept.
     - `entities` now defaults to `credit_card`, `api_key` and `bearer_token`. `email`, `phone`, `url`, `ip_address` and `mac_address` are still supported, but opt-in.
     - `scan_injection` now defaults to `false`. Prose written for a human reader routinely matches the patterns. Enable it when a proposed argument feeds another model or agent rather than a person.
 
-    `block_entities` is unchanged, so the security floor stays where it was, and every change here loosens a default — nothing that worked on v0.3.0 stops working.
+    `block_entities` is unchanged, so the security floor stays where it was, and every change here loosens a default. Nothing that worked on v0.3.0 stops working.
 
     Also documented a sharp edge that was always present: `action: 'log'` is not observe-only on its own, because `block_entities` stops the run whatever the action is set to. Pair it with `blockEntities: []` for a dry run.
 </Update>
@@ -32,7 +32,7 @@ Product updates and release notes for Intercept.
 <Update label="August 6, 2026" description="v0.3.0" tags={["Release", "Security"]}>
     Added `promptphp/intercept-tool-approval-guard`, a new middleware that inspects the tool calls an agent proposes while pausing for human approval, before they are surfaced for review.
 
-    Intercept has always inspected what goes *out*. It never saw what comes back in — tool results, retrieved documents, and conversation history do not pass through the middleware pipeline, and that is exactly where indirect prompt injection lives.
+    Intercept has always inspected what goes *out*. It never saw what comes back in. Tool results, retrieved documents, and conversation history do not pass through the middleware pipeline, and that is exactly where indirect prompt injection lives.
 
     When an agent is manipulated by content Intercept never saw, the damage almost always surfaces as a tool call:
 
@@ -46,7 +46,7 @@ Product updates and release notes for Intercept.
     - whether an argument carries secret-like data such as a card number, API key or bearer token
     - whether an argument matches a prompt injection pattern, which signals the model was manipulated
 
-    In the example above it is the **card number** that flags the call, not the address — a mail tool is expected to carry an email address.
+    In the example above it is the **card number** that flags the call, not the address. A mail tool is expected to carry an email address.
 
     It reuses the detectors and patterns from PII Redactor and Injection Guard rather than maintaining a second copy, so it inherits their behaviour exactly.
 
@@ -99,7 +99,7 @@ Product updates and release notes for Intercept.
     
     Added support for detecting URLs in `PIIRedactor`.
 
-    URLs are now treated like other supported PII entities and can be
+    URLs are now treated like other supported PII entities and can be:
 
     - redacted
     - masked
@@ -112,7 +112,7 @@ Product updates and release notes for Intercept.
 <Update label="July 16, 2026" description="v0.1.6" tags={["Release", "PII Redaction"]}>
     Added support for detecting MAC addresses in `PIIRedactor`.
 
-    MAC addresses are now treated like other supported PII entities and can be
+    MAC addresses are now treated like other supported PII entities and can be:
 
     - redacted
     - masked
