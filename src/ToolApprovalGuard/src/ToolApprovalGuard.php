@@ -8,14 +8,22 @@ use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Laravel\Ai\Approvals\Approval;
 use Laravel\Ai\Approvals\PendingApproval;
-use Laravel\Ai\Prompts\AgentPrompt;
-use Laravel\Ai\Responses\StreamableAgentResponse;
-use Laravel\Ai\Responses\TextResponse;
+use Laravel\Ai\Contracts\Approvable;
+use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Gateway\StepResponse;
+use Laravel\Ai\Gateway\StepResult;
+use Laravel\Ai\PendingStep;
+use Laravel\Ai\Providers\Tools\ToolSearch;
+use Laravel\Ai\Responses\Data\FinishReason;
+use Laravel\Ai\Tools\Request;
+use Laravel\Ai\Tools\ToolNameResolver;
 use PromptPHP\Intercept\InjectionGuard\Defaults\InjectionGuardDefaults;
 use PromptPHP\Intercept\PIIRedactor\Detectors\Contracts\Detector;
 use PromptPHP\Intercept\PIIRedactor\Detectors\DefaultDetectors;
 use PromptPHP\Intercept\PIIRedactor\Enums\EntityTypes;
+use PromptPHP\Intercept\Support\Concerns\InspectsPendingSteps;
 use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
 use PromptPHP\Intercept\Support\InterceptConfig;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
@@ -27,6 +35,7 @@ use PromptPHP\Intercept\ToolApprovalGuard\ValueObjects\ApprovalFinding;
 
 class ToolApprovalGuard
 {
+    use InspectsPendingSteps;
     use ScansApprovalDecisions;
 
     /**
@@ -162,68 +171,132 @@ class ToolApprovalGuard
     }
 
     /**
-     * Handle the outgoing prompt and inspect any tool calls proposed for approval.
+     * Handle a generation step and inspect the tool calls it proposes for approval.
      *
-     * This middleware acts on the response rather than the prompt, because the tool calls it
-     * guards are proposed by the model. Runs that do not pause for approval are untouched.
+     * This middleware acts on the step response rather than the prompt, because the tool
+     * calls it guards are proposed by the model. The inspection runs when the step resolves,
+     * which is before the SDK turns gated tool calls into pending approvals. A blocked step
+     * therefore never surfaces its approvals and runs none of its tools, on both the
+     * synchronous and the streamed path.
      *
-     * @param AgentPrompt $prompt The agent being prompted.
-     * @param Closure     $next   The next middleware in the pipeline.
+     * @param PendingStep $step The generation step.
+     * @param Closure     $next The next middleware in the pipeline.
      */
-    public function handle(AgentPrompt $prompt, Closure $next): mixed
+    public function handle(PendingStep $step, Closure $next): StepResult
     {
-        $response = $next($prompt);
+        $result = $next($step);
 
-        if ($response instanceof StreamableAgentResponse) {
-            // A streamed response has not produced its approvals yet. The completion hook fires
-            // once they are known, but the caller has already received the streamed text by
-            // then, so blocking is no longer possible and the action degrades to logging.
-            return $response->then(
-                fn (TextResponse $streamed): mixed => $this->inspect($prompt, $streamed, blocking: false),
-            );
+        if ($result instanceof StepResponse) {
+            $result = new StepResult($result);
         }
 
-        if ($response instanceof TextResponse) {
-            return $this->inspect($prompt, $response, blocking: true);
-        }
-
-        return $response;
+        return $result->then(
+            fn (StepResponse $response) => $this->inspect($step, $response),
+        );
     }
 
     /**
-     * Inspect the tool calls a response has proposed for approval.
+     * Inspect the tool calls a step response proposes for approval.
      *
-     * @param AgentPrompt  $prompt   The agent being prompted.
-     * @param TextResponse $response The response carrying the pending approvals.
-     * @param bool         $blocking Whether the run can still be stopped.
+     * A callback receives the step, the step response, and the findings, and replaces the
+     * configured action. Its return value is ignored. Throw from the callback to stop the run.
+     *
+     * @param PendingStep  $step     The generation step.
+     * @param StepResponse $response The response of the step.
      */
-    protected function inspect(AgentPrompt $prompt, TextResponse $response, bool $blocking): mixed
+    protected function inspect(PendingStep $step, StepResponse $response): void
     {
-        if (! $response->hasPendingApprovals()) {
-            return $response;
+        $proposals = $this->proposalsFor($step, $response);
+
+        if ($proposals->isEmpty()) {
+            return;
         }
 
-        $findings = $this->findingsFor($response->pendingApprovals);
+        $findings = $this->findingsFor($proposals);
 
         if ($findings === []) {
-            return $response;
+            return;
         }
 
-        $shouldBlock = $blocking && (
-            $this->action === ActionTypes::BLOCK || $this->hasBlockedEntity($findings)
-        );
+        $shouldBlock = $this->action === ActionTypes::BLOCK || $this->hasBlockedEntity($findings);
 
-        $this->log($prompt, $findings, $shouldBlock, $blocking);
+        $this->log($step, $findings, $shouldBlock);
 
         if ($this->callback !== null) {
-            return ($this->callback)($prompt, $response, $findings);
+            ($this->callback)($step, $response, $findings);
+
+            return;
         }
 
         if ($shouldBlock) {
             $this->block($findings);
         }
+    }
 
-        return $response;
+    /**
+     * Get the tool calls a step response proposes for approval.
+     *
+     * This matches how the SDK pauses a run: approvals the provider reports itself, plus each
+     * requested call to a local tool whose approval rule asks for approval.
+     *
+     * @param PendingStep  $step     The generation step.
+     * @param StepResponse $response The response of the step.
+     *
+     * @return Collection<int, PendingApproval>
+     */
+    protected function proposalsFor(PendingStep $step, StepResponse $response): Collection
+    {
+        $proposals = collect($response->pendingApprovals);
+
+        if ($proposals->isNotEmpty() || $response->finishReason !== FinishReason::ToolCalls) {
+            return $proposals->values();
+        }
+
+        foreach ($response->toolCalls as $toolCall) {
+            $tool = $this->findTool($toolCall->name, $step->tools);
+
+            if (! $tool instanceof Approvable) {
+                continue;
+            }
+
+            $approval = $tool->shouldRequestApproval(new Request($toolCall->arguments, $toolCall->id));
+
+            if ($approval instanceof Approval) {
+                $proposals->push(new PendingApproval(
+                    $toolCall->id,
+                    $toolCall->name,
+                    $toolCall->arguments,
+                    $approval->reason,
+                ));
+            }
+        }
+
+        return $proposals;
+    }
+
+    /**
+     * Find a local tool by name, including tools nested in a tool search wrapper.
+     *
+     * @param string                   $name  The name of the requested tool.
+     * @param array<int|string, mixed> $tools The tools available to the step.
+     */
+    protected function findTool(string $name, array $tools): ?Tool
+    {
+        foreach ($tools as $tool) {
+            if ($tool instanceof ToolSearch) {
+                if (($nested = $this->findTool($name, $tool->tools)) !== null) {
+                    return $nested;
+                }
+
+                continue;
+            }
+
+            if ($tool instanceof Tool && ToolNameResolver::resolve($tool) === $name) {
+                return $tool;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -390,17 +463,14 @@ class ToolApprovalGuard
     /**
      * Log the findings safely.
      *
-     * @param AgentPrompt                 $prompt      The agent being prompted.
+     * @param PendingStep                 $step        The generation step.
      * @param array<int, ApprovalFinding> $findings    The findings to log.
      * @param bool                        $shouldBlock Whether the run is being stopped.
-     * @param bool                        $blocking    Whether the run could have been stopped.
      */
-    protected function log(AgentPrompt $prompt, array $findings, bool $shouldBlock, bool $blocking): void
+    protected function log(PendingStep $step, array $findings, bool $shouldBlock): void
     {
         $context = [
-            'agent'    => $prompt->agent::class,
-            'provider' => $prompt->provider()::class,
-            'model'    => $prompt->model,
+            ...$this->stepLogContext($step),
             'source'   => 'pending_approvals',
             'findings' => array_map(
                 fn (ApprovalFinding $finding): array => $this->describe($finding),
@@ -408,10 +478,6 @@ class ToolApprovalGuard
             ),
             'timestamp' => now()->toIso8601String(),
         ];
-
-        if (! $blocking && $this->action === ActionTypes::BLOCK) {
-            $context['degraded_from'] = ActionTypes::BLOCK->value;
-        }
 
         Log::warning(
             $shouldBlock
