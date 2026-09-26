@@ -103,4 +103,12 @@ final class ToolApprovalGuardTestProvider implements TextProvider
     {
         return [];
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function withHeaders(array $headers): static
+    {
+        return $this;
+    }
 }

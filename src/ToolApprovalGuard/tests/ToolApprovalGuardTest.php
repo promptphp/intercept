@@ -7,7 +7,7 @@ use Laravel\Ai\Approvals\PendingApproval;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\Meta;
-use Laravel\Ai\Responses\Data\Usage;
+use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use Laravel\Ai\Streaming\Events\ToolApprovalRequest;
 use PromptPHP\Intercept\PIIRedactor\Defaults\PIIRedactorDefaults;
@@ -46,7 +46,7 @@ function respondWithApprovals(array $pendingApprovals): AgentResponse
  */
 function respondNormally(): AgentResponse
 {
-    return new AgentResponse('inv', 'All done.', new Usage, new Meta);
+    return new AgentResponse('inv', 'All done.', new TextUsage, new Meta);
 }
 
 it('leaves runs that did not pause for approval untouched', function (): void {

@@ -7,7 +7,9 @@ namespace PromptPHP\Intercept\InjectionGuard\Tests\Fixtures;
 use Illuminate\Broadcasting\Channel;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\AgentInput;
 use Laravel\Ai\Enums\Lab;
+use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\QueuedAgentResponse;
 use Laravel\Ai\Responses\StreamableAgentResponse;
@@ -27,7 +29,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function prompt(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         array $attachments = [],
         Lab|array|string|null $provider = null,
         ?string $model = null,
@@ -40,7 +42,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function stream(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         array $attachments = [],
         Lab|array|string|null $provider = null,
         ?string $model = null,
@@ -53,7 +55,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function queue(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         array $attachments = [],
         Lab|array|string|null $provider = null,
         ?string $model = null
@@ -65,7 +67,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function broadcast(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         Channel|array $channels,
         array $attachments = [],
         bool $now = false,
@@ -79,7 +81,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function broadcastNow(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         Channel|array $channels,
         array $attachments = [],
         Lab|array|string|null $provider = null,
@@ -92,7 +94,7 @@ final class PromptInjectionGuardTestAgent implements Agent
      * {@inheritDoc}
      */
     public function broadcastOnQueue(
-        Decisions|string $prompt,
+        AgentInput|UserMessage|Decisions|string $prompt,
         Channel|array $channels,
         array $attachments = [],
         Lab|array|string|null $provider = null,

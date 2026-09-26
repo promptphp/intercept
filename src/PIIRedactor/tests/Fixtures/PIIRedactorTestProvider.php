@@ -103,4 +103,12 @@ final class PIIRedactorTestProvider implements TextProvider
     {
         return [];
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function withHeaders(array $headers): static
+    {
+        return $this;
+    }
 }
