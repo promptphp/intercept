@@ -6,6 +6,12 @@ use Illuminate\Support\Collection;
 use Laravel\Ai\Approvals\Decision;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Approvals\PendingApproval;
+use Laravel\Ai\Messages\AssistantMessage;
+use Laravel\Ai\Messages\ToolResultMessage;
+use Laravel\Ai\Messages\UserMessage;
+use Laravel\Ai\PendingStep;
+use Laravel\Ai\Responses\Data\ToolCall;
+use Laravel\Ai\Responses\Data\ToolResult;
 use PromptPHP\Intercept\Support\Tests\Fixtures\ApprovalDecisionScanner;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
@@ -187,4 +193,87 @@ it('returns no segments for a pending approval with no arguments', function (): 
     expect(scanPendingApprovals(collect([
         new PendingApproval('call_1', 'list_tickets', []),
     ])))->toBe([]);
+});
+
+/**
+ * Build the first step of a resumed run from the proposed calls and the decision results.
+ *
+ * @param array<int, ToolCall>   $calls
+ * @param array<int, ToolResult> $results
+ */
+function makeResumedScanStep(array $calls, array $results): PendingStep
+{
+    return new PendingStep(
+        number: 0,
+        isFinalStep: false,
+        provider: 'test-provider',
+        model: 'test-model',
+        instructions: null,
+        messages: [
+            new UserMessage('Send the report.'),
+            new AssistantMessage('', collect($calls)),
+            new ToolResultMessage(collect($results)),
+        ],
+        tools: [],
+        schema: null,
+        options: null,
+    );
+}
+
+it('extracts the rejection text from a denied tool result on a resumed step', function (): void {
+    $segments = (new ApprovalDecisionScanner)->resumedSegments(makeResumedScanStep(
+        [new ToolCall('call_1', 'send', ['to' => 'ops'])],
+        [new ToolResult('call_1', 'send', ['to' => 'ops'], 'Do not send it.', denied: true)],
+    ));
+
+    expect($segments)->toHaveCount(1);
+    expect($segments[0]->toolCallId)->toBe('call_1');
+    expect($segments[0]->field)->toBe('result');
+    expect($segments[0]->text)->toBe('Do not send it.');
+});
+
+it('extracts edited arguments from a resumed step', function (): void {
+    $segments = (new ApprovalDecisionScanner)->resumedSegments(makeResumedScanStep(
+        [new ToolCall('call_1', 'send', ['to' => 'ops'])],
+        [new ToolResult('call_1', 'send', ['to' => 'victor@example.com'], 'Sent.')],
+    ));
+
+    expect($segments)->toHaveCount(1);
+    expect($segments[0]->field)->toBe('arguments.to');
+    expect($segments[0]->text)->toBe('victor@example.com');
+});
+
+it('ignores approved arguments and tool output on a resumed step', function (): void {
+    $segments = (new ApprovalDecisionScanner)->resumedSegments(makeResumedScanStep(
+        [new ToolCall('call_1', 'send', ['to' => 'ops', 'cc' => ['a' => 1, 'b' => 2]])],
+        [new ToolResult('call_1', 'send', ['cc' => ['b' => 2, 'a' => 1], 'to' => 'ops'], 'victor@example.com')],
+    ));
+
+    expect($segments)->toBe([]);
+});
+
+it('scans the arguments of a tool result with no matching proposal', function (): void {
+    $segments = (new ApprovalDecisionScanner)->resumedSegments(makeResumedScanStep(
+        [],
+        [new ToolResult('call_9', 'send', ['to' => 'ops'], 'Sent.')],
+    ));
+
+    expect($segments)->toHaveCount(1);
+    expect($segments[0]->toolCallId)->toBe('call_9');
+});
+
+it('returns no resumed segments when the step does not end with tool results', function (): void {
+    $step = new PendingStep(
+        number: 0,
+        isFinalStep: false,
+        provider: 'test-provider',
+        model: 'test-model',
+        instructions: null,
+        messages: [new UserMessage('Hello.')],
+        tools: [],
+        schema: null,
+        options: null,
+    );
+
+    expect((new ApprovalDecisionScanner)->resumedSegments($step))->toBe([]);
 });

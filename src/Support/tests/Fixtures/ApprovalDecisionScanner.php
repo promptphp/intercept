@@ -7,6 +7,7 @@ namespace PromptPHP\Intercept\Support\Tests\Fixtures;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Approvals\Decisions;
 use Laravel\Ai\Approvals\PendingApproval;
+use Laravel\Ai\PendingStep;
 use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
@@ -39,5 +40,17 @@ final class ApprovalDecisionScanner
     public function pendingSegments(?Collection $pendingApprovals): array
     {
         return $this->pendingApprovalSegments($pendingApprovals);
+    }
+
+    /**
+     * Extract the scannable text segments from the first step of a resumed run.
+     *
+     * @param PendingStep $step The first step of the resumed run.
+     *
+     * @return array<int, ApprovalDecisionSegment>
+     */
+    public function resumedSegments(PendingStep $step): array
+    {
+        return $this->resumedApprovalSegments($step);
     }
 }
