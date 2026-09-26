@@ -89,7 +89,7 @@ By default, Injection Guard uses the `block` action.
 That means a matching prompt injection attempt throws a `PromptInjectionGuardException`.
 
 <Tip>
-    You may also catch the parent exception class `InterceptException` throwable by all Intercept middleware.
+    You can also catch `InterceptException`, the parent exception class that all Intercept middleware throw.
 </Tip>
 
 ```php

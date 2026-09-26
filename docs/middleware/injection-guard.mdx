@@ -9,7 +9,7 @@ sidebarTitle: "Injection Guard"
 It can block, log, warn, sanitize, or delegate handling to a custom callback.
 
 <Tip>
-    This middleware is a lightweight heuristic guard. It is designed to catch common prompt injection patterns. It should not be treated as complete protection against every possible attack.
+    This middleware is a lightweight heuristic guard. It is designed to catch common prompt injection patterns. Don't treat it as complete protection against every possible attack.
 </Tip>
 
 ## Installation
@@ -78,7 +78,7 @@ The recommended default action is `block`.
 
 No configuration is required. The middleware works out of the box using safe internal defaults.
 
-The defaults may be overridden via the constructor or via the shared `config/intercept.php` file, published with:
+You can override the defaults via the constructor or via the shared `config/intercept.php` file. Publish it with:
 
 ```bash
 php artisan vendor:publish --tag=intercept-config
@@ -88,7 +88,7 @@ Explore the [configuration guide](/configuration) for more details on how to con
 
 ### Configuration priority
 
-Configuration is resolved in this order:
+Intercept resolves configuration in this order:
 
 ```mermaid placement="top-right"
    flowchart LR
@@ -152,10 +152,10 @@ public function middleware(): array
 }
 ```
 
-When a prompt injection attempt is detected, the middleware throws a `PromptInjectionGuardException`.
+When the middleware detects a prompt injection attempt, it throws a `PromptInjectionGuardException`.
 
 <Tip>
-    You may also catch the parent exception class `InterceptException` throwable by all Intercept middleware.
+    You can also catch `InterceptException`, the parent exception class that all Intercept middleware throw.
 </Tip>
 
 ```php
@@ -370,11 +370,11 @@ public function middleware(): array
 }
 ```
 
-When a callback is provided, it takes priority over the configured action.
+When you provide a callback, it takes priority over the configured action.
 
 ## Tool approval resumes
 
-When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt.
+When an agent pauses for tool approval, you resume the run by passing `Decisions` back to the agent instead of a new prompt.
 
 A resumed prompt carries no prompt text. The only new content is what a human supplied while resolving the pending tool calls:
 
