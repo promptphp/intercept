@@ -6,13 +6,12 @@ sidebarTitle: "Support utilities"
 
 `promptphp/intercept-support` provides shared support utilities and configuration for the Intercept middleware ecosystem.
 
-Users do not need to install or use this package directly. Composer installs it automatically when an Intercept middleware package requires it.
+You do not need to install or use this package directly. Composer installs it automatically when an Intercept middleware package requires it.
 
 The support package provides shared infrastructure used across Intercept packages, including:
 
 - the shared `config/intercept.php` configuration file
 - the `intercept-config` publish tag
-
 - the `InterceptServiceProvider` for Laravel package registration
 - the Intercept base exception class
 
@@ -52,11 +51,11 @@ The helper merges the published config section with the middleware's internal de
 
 Missing config sections are safe.
 
-For example, a user may publish `config/intercept.php` while only using Injection Guard. If they later install PII Redactor, their existing config file may not contain a `pii_redactor` section.
+For example, you may publish `config/intercept.php` while only using Injection Guard. If you later install PII Redactor, your existing config file may not contain a `pii_redactor` section.
 
 That is fine. PII Redactor will still work using its internal defaults.
 
-Users only need to add a middleware section to `config/intercept.php` when they want to customise global behaviour.
+You only need to add a middleware section to `config/intercept.php` when they want to customise global behaviour.
 
 ## Service provider
 
