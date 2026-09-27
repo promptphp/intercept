@@ -162,7 +162,7 @@ This middleware acts on the response rather than the prompt, because the model p
 
 When an agent pauses for tool approval and you resume it with `Decisions`, the prompt text is empty. The new content is whatever a human supplied while resolving the pending tool calls: edited tool arguments and rejection results.
 
-Intercept scans that content by default, before the SDK applies the decisions and runs any approved tool call. Resumed prompts cannot be rewritten, so actions that modify the prompt degrade to logging on this path:
+Intercept scans that content by default, before the SDK applies the decisions and runs any approved tool call. Intercept cannot rewrite resumed prompts, so actions that modify the prompt degrade to logging on this path:
 
 | Middleware      | Degrades to logging | Still blocks                      |
 | --------------- | ------------------- | --------------------------------- |

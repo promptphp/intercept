@@ -9,7 +9,7 @@ sidebarTitle: "Injection Guard"
 It can block, log, warn, sanitize, or delegate handling to a custom callback.
 
 <Tip>
-    This middleware is a lightweight heuristic guard. It is designed to catch common prompt injection patterns. Don't treat it as complete protection against every possible attack.
+    This middleware is a lightweight heuristic guard. It targets common prompt injection patterns. Don't treat it as complete protection against every possible attack.
 </Tip>
 
 ## Installation
@@ -185,7 +185,7 @@ public function middleware(): array
 }
 ```
 
-The prompt continues unchanged, but the detection is logged safely.
+The prompt continues unchanged, but the middleware logs the detection safely.
 
 Prompt previews are disabled by default because prompts may contain sensitive data. Enable previews only if you are comfortable storing a short prompt sample in your logs.
 
@@ -240,7 +240,7 @@ Example input:
 </Prompt>
 
 
-The matched injection phrase is replaced with:
+The middleware replaces the matched injection phrase with:
 
 <Prompt description="[removed] and summarize this support ticket.">
     [removed] and summarize this support ticket.
@@ -252,7 +252,7 @@ The matched injection phrase is replaced with:
 
 ### Custom patterns
 
-Custom patterns are merged with the built-in patterns by default.
+By default, the middleware merges custom patterns with the built-in patterns.
 
 ```php
 public function middleware(): array
@@ -404,7 +404,7 @@ $response = $agent->prompt(Decisions::from([
 ]));
 ```
 
-The injection attempt above is detected exactly as it would be inside a prompt.
+Intercept detects the injection attempt above exactly as it would inside a prompt.
 
 ### Actions on a resumed run
 
@@ -427,11 +427,11 @@ When Injection Guard blocks a resumed run, the exception names the offending too
 Prompt injection attempt detected in tool approval decisions [call_7: arguments.filters.note].
 ```
 
-The matched text is never included in the message, so it stays safe to log. Follow the guidance in [handling blocked prompts](/guides/handling-blocked-prompts) before surfacing anything to a user.
+The message never includes the matched text, so it stays safe to log. Follow the guidance in [handling blocked prompts](/guides/handling-blocked-prompts) before surfacing anything to a user.
 
 ### Reading the logs
 
-Detections are logged under a distinct message, `Prompt injection attempt detected in tool approval decisions.`, with a `source` of `approval_decisions`:
+Intercept logs detections under a distinct message, `Prompt injection attempt detected in tool approval decisions.`, with a `source` of `approval_decisions`:
 
 ```php
 [
@@ -452,7 +452,7 @@ The `degraded_from` key appears only when the configured action could not be app
 
 ### Custom callbacks on a resumed run
 
-A callback receives the resumed `AgentPrompt`, a `null` in place of `$next`, and the same detection array it receives on the prompt path. The array has two extra keys that name where the detection came from. The return value is ignored, so throw to stop the run:
+A callback receives the resumed `AgentPrompt`, a `null` in place of `$next`, and the same detection array it receives on the prompt path. The array has two extra keys that name where the detection came from. Intercept ignores the return value, so throw to stop the run:
 
 ```php
 new PromptInjectionGuard(

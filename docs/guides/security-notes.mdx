@@ -98,7 +98,7 @@ It does not scan:
 
 It cannot change what the SDK stores. The conversation store keeps the original prompt, and the SDK builds the conversation title from it.
 
-This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept.
+This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, the SDK hands that content to the model without passing it through Intercept.
 
 Tool Approval Guard narrows that gap but does not close it. It inspects what the model *proposed* after reading poisoned content, which is where the damage usually surfaces. It cannot inspect the poisoned content itself. It also only applies to tools that are approval-gated. A tool that runs without approval is never inspected.
 
