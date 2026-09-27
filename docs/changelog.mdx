@@ -78,7 +78,7 @@ description: "Product updates and release notes for Intercept, including depende
 <Update label="July 31, 2026" description="v0.2.0" tags={["Release", "Security"]}>
     Added tool approval decision scanning to `PromptInjectionGuard` and `PIIRedactor`.
 
-    When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt. A resumed prompt carries no prompt text, so both middleware previously reported clean while the content a human supplied on the way through reached the AI provider unscanned.
+    When an agent pauses for tool approval, you resume the run by passing `Decisions` back to the agent instead of a new prompt. A resumed prompt carries no prompt text, so both middleware previously reported clean while the content a human supplied on the way through reached the AI provider unscanned.
 
     Both middleware now scan that content:
 
@@ -87,7 +87,7 @@ description: "Product updates and release notes for Intercept, including depende
 
     A paused turn must replay verbatim against the provider that recorded it, so resumed prompts cannot be rewritten. The `redact`, `mask`, `sanitize`, and `warn` actions therefore degrade to logging on this path, recorded in logs as `degraded_from`. Blocked entities and the `block` action still stop the run.
 
-    Scanning is enabled by default and can be turned off per middleware with `scan_approval_decisions`.
+    Scanning is enabled by default. You can turn it off per middleware with `scan_approval_decisions`.
 
     The documentation now also states plainly what Intercept can and cannot inspect, since tool results, attachments, and conversation history never pass through the middleware pipeline.
 </Update>
@@ -145,7 +145,7 @@ description: "Product updates and release notes for Intercept, including depende
 <Update label="July 14, 2026" description="v0.1.5" tags={["Release", "Security", "Community"]}>
     Hardened the built-in prompt injection detection patterns in `PromptInjectionGuard` to improve protection against common prompt injection attempts.
 
-    Also improved the project documentation by adding contribution guidelines and updating the roadmap to help developers contribute consistently to Intercept.
+    Also improved the project documentation by adding contribution guidelines and updating the roadmap to help you contribute consistently to Intercept.
 </Update>
 
 <Update label="June 24, 2026" description="v0.1.4" tags={["Release", "DX", "Docs"]}>
@@ -197,5 +197,5 @@ description: "Product updates and release notes for Intercept, including depende
     - `promptphp/intercept-injection-guard`
     - `promptphp/intercept-pii-redactor`
 
-    It also added shared configuration through `config/intercept.php`, the `intercept-config` publish tag, prompt injection detection, PII redaction, safe logging, package documentation, Pest tests, and the split-package monorepo structure.
+    It also added shared configuration through `config/intercept.php` and the `intercept-config` publish tag. It added prompt injection detection, PII redaction, safe logging, package documentation, Pest tests, and the split-package monorepo structure.
 </Update>

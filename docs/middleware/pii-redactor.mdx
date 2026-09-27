@@ -9,7 +9,7 @@ sidebarTitle: "PII Redactor"
 It can redact, mask, log, block, or delegate handling to a custom callback.
 
 <Tip>
-    This middleware is deterministic and regex-based. It is designed to catch common structured sensitive data. It is not intended to guarantee complete detection of every possible personal identifier.
+    This middleware is deterministic and regex-based. It catches common structured sensitive data. It does not guarantee complete detection of every possible personal identifier.
 </Tip>
 
 ## Installation
@@ -91,7 +91,7 @@ Some entities can still be blocked even when the action is `redact`. By default,
 | `api_key`      | Common API key formats.                       |
 | `bearer_token` | Bearer authorization tokens.                  |
 
-Names, addresses, passports, national insurance numbers, and medical identifiers are not included in the current version. These values are harder to detect safely with regex alone and can create false positives.
+The current version does not detect names, addresses, passports, national insurance numbers, or medical identifiers. These values are harder to detect safely with regex alone and can create false positives.
 
 ## Configuration
 
@@ -228,7 +228,7 @@ public function middleware(): array
 }
 ```
 
-The prompt continues unchanged, but detections are logged safely.
+The prompt continues unchanged, and the middleware logs detections safely.
 
 Prompt previews are disabled by default because prompts may contain sensitive user data. Enable previews only if you are comfortable storing a short prompt sample in your logs.
 
@@ -283,7 +283,7 @@ try {
 
 ### Blocked entities
 
-Some entities are treated as high-risk and are blocked by default, even when the action is `redact`.
+The middleware treats some entities as high-risk and blocks them by default, even when the action is `redact`.
 
 Default blocked entities:
 
@@ -486,7 +486,7 @@ $response = $agent->prompt(Decisions::from([
 ]));
 ```
 
-The email address above is detected exactly as it would be inside a prompt.
+The middleware detects the email address above exactly as it would inside a prompt.
 
 ### Actions on a resumed run
 
@@ -499,11 +499,11 @@ A paused turn must replay verbatim against the provider that recorded it, so the
 | `redact` | Degrades to logging.       |
 | `mask`   | Degrades to logging.       |
 
-Blocked entities still stop the run regardless of the configured action. A credit card, API key, or bearer token in an edited tool argument is refused exactly as it would be in a prompt.
+Blocked entities still stop the run regardless of the configured action. The middleware refuses a credit card, API key, or bearer token in an edited tool argument exactly as it would in a prompt.
 
 ### Reading the logs
 
-Detections found in approval decisions are logged under a distinct message, `PII detected in tool approval decisions.`, with a `source` of `approval_decisions`:
+The middleware logs detections found in approval decisions under a distinct message, `PII detected in tool approval decisions.`, with a `source` of `approval_decisions`:
 
 ```php
 [
