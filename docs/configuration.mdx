@@ -156,7 +156,7 @@ Unlike the PII Redactor, `entities` defaults to only the high-risk set: `credit_
 
 Note that `block_entities` stops the run whatever `action` is set to, so `action: 'log'` is only observe-only if you also set `block_entities` to `[]`.
 
-This middleware acts on the response rather than the prompt, because the tool calls it guards are proposed by the model. It has no mutating action, since a proposed tool call belongs to the paused turn the provider recorded.
+This middleware acts on the response rather than the prompt, because the model proposes the tool calls it guards. It has no mutating action, since a proposed tool call belongs to the paused turn the provider recorded.
 
 ## Tool approval resumes
 
