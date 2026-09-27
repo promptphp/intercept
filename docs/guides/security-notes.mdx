@@ -100,7 +100,7 @@ It cannot change what the SDK stores. The conversation store keeps the original 
 
 This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept.
 
-Tool Approval Guard narrows that gap but does not close it. It inspects what the model *proposed* after reading poisoned content, which is where the damage usually surfaces, but it cannot inspect the poisoned content itself. It also only applies to tools that are approval-gated. A tool that runs without approval is never inspected.
+Tool Approval Guard narrows that gap but does not close it. It inspects what the model *proposed* after reading poisoned content, which is where the damage usually surfaces. It cannot inspect the poisoned content itself. It also only applies to tools that are approval-gated. A tool that runs without approval is never inspected.
 
 Guard those surfaces separately:
 
@@ -112,7 +112,7 @@ Guard those surfaces separately:
 
 ## Tool approval resumes
 
-When a paused run is resumed with `Decisions`, the prompt text is empty. The new content is what a human supplied while resolving the pending tool calls, and Intercept scans it. The scan runs before the SDK executes any approved or edited tool call.
+When you resume a paused run with `Decisions`, the prompt text is empty. The new content is what a human supplied while resolving the pending tool calls, and Intercept scans it. The scan runs before the SDK executes any approved or edited tool call.
 
 Two limits are worth knowing.
 
