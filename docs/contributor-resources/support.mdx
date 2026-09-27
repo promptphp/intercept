@@ -1,19 +1,19 @@
 ---
 title: "Support utilities"
-description: "Learn how the intercept-support package provides the shared config file, the InterceptConfig helper, and the service provider used by Intercept middleware."
 sidebarTitle: "Support utilities"
 ---
 
 `promptphp/intercept-support` provides shared support utilities and configuration for the Intercept middleware ecosystem.
 
-Most users do not need to install or use this package directly. Composer installs it automatically when an Intercept middleware package requires it.
+Users do not need to install or use this package directly. Composer installs it automatically when an Intercept middleware package requires it.
 
 The support package provides shared infrastructure used across Intercept packages, including:
 
 - the shared `config/intercept.php` configuration file
 - the `intercept-config` publish tag
-- the `InterceptConfig` helper for resolving middleware configuration
+
 - the `InterceptServiceProvider` for Laravel package registration
+- the Intercept base exception class
 
 ## Installation
 
