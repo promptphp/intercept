@@ -5,27 +5,63 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Approvals\Decision;
 use Laravel\Ai\Approvals\Decisions;
+use Laravel\Ai\Gateway\TextGenerationOptions;
+use Laravel\Ai\Messages\AssistantMessage;
+use Laravel\Ai\Messages\Message;
+use Laravel\Ai\Messages\ToolResultMessage;
+use Laravel\Ai\Messages\UserMessage;
+use Laravel\Ai\PendingStep;
 use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Responses\Data\ToolCall;
+use Laravel\Ai\Responses\Data\ToolResult;
 use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
 use PromptPHP\Intercept\PIIRedactor\PIIRedactor;
 use PromptPHP\Intercept\PIIRedactor\Tests\Fixtures\PIIRedactorTestAgent;
 use PromptPHP\Intercept\PIIRedactor\Tests\Fixtures\PIIRedactorTestProvider;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\RedactionResult;
+use PromptPHP\Intercept\Support\ApprovalDecisionLedger;
 
 afterEach(function (): void {
     Mockery::close();
 });
 
-function makePIIRedactorAgentPrompt(string $prompt, ?Decisions $approvalDecisions = null): AgentPrompt
+/**
+ * Build a generation step with the given history.
+ *
+ * @param array<int, Message> $messages
+ */
+function makePIIRedactorStep(array $messages, int $number = 0): PendingStep
 {
-    return new AgentPrompt(
-        agent: new PIIRedactorTestAgent,
-        prompt: $prompt,
-        attachments: [],
-        provider: new PIIRedactorTestProvider,
+    return new PendingStep(
+        number: $number,
+        isFinalStep: false,
+        provider: 'test-provider',
         model: 'test-model',
-        approvalDecisions: $approvalDecisions,
+        instructions: 'You are a support agent.',
+        messages: $messages,
+        tools: [],
+        schema: null,
+        options: new TextGenerationOptions(agent: new PIIRedactorTestAgent),
+        invocationId: 'inv_1',
     );
+}
+
+/**
+ * Build the first step of a new turn, which ends with the prompt.
+ */
+function makePIIRedactorAgentPrompt(string $prompt): PendingStep
+{
+    return makePIIRedactorStep([new UserMessage($prompt)]);
+}
+
+/**
+ * Get the prompt text a step sends to the provider.
+ */
+function piiStepPrompt(PendingStep $step): string
+{
+    $messages = array_values(array_filter($step->messages, fn (Message $message): bool => $message instanceof UserMessage));
+
+    return (string) $messages[count($messages) - 1]->content;
 }
 
 /**
@@ -33,7 +69,34 @@ function makePIIRedactorAgentPrompt(string $prompt, ?Decisions $approvalDecision
  */
 function makePIIRedactorResumedPrompt(Decisions $approvalDecisions): AgentPrompt
 {
-    return makePIIRedactorAgentPrompt('', $approvalDecisions);
+    return new AgentPrompt(
+        agent: new PIIRedactorTestAgent,
+        prompt: '',
+        attachments: [],
+        provider: new PIIRedactorTestProvider,
+        model: 'test-model',
+        invocationId: 'inv_1',
+        approvalDecisions: $approvalDecisions,
+    );
+}
+
+/**
+ * Build the first step of a resumed run, which ends with the tool results of the decisions.
+ *
+ * @param array<int, ToolResult> $results
+ */
+function makePIIRedactorResumedStep(array $results): PendingStep
+{
+    $calls = array_map(
+        fn (ToolResult $result): ToolCall => new ToolCall($result->id, $result->name, ['recipient' => 'team@example.org']),
+        $results,
+    );
+
+    return makePIIRedactorStep([
+        new UserMessage('Send the summary.'),
+        new AssistantMessage('', collect($calls)),
+        new ToolResultMessage(collect($results)),
+    ]);
 }
 
 it('allows safe prompts to continue through the pipeline', function (): void {
@@ -43,8 +106,8 @@ it('allows safe prompts to continue through the pipeline', function (): void {
 
     $receivedPrompt = null;
 
-    $result = $redactor->handle($prompt, function (AgentPrompt $prompt) use (&$receivedPrompt): string {
-        $receivedPrompt = $prompt;
+    $result = $redactor->handle($prompt, function (PendingStep $step) use (&$receivedPrompt): string {
+        $receivedPrompt = $step;
 
         return 'next-called';
     });
@@ -62,14 +125,14 @@ it('redacts email addresses by default', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com about this.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email [EMAIL_1] about this.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email [EMAIL_1] about this.');
 });
 
 it('redacts phone numbers by default', function (): void {
@@ -81,14 +144,14 @@ it('redacts phone numbers by default', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Call me on 07123456789.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Call me on [PHONE_1].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Call me on [PHONE_1].');
 });
 
 it('redacts ip addresses by default', function (): void {
@@ -100,14 +163,14 @@ it('redacts ip addresses by default', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('The login came from 192.168.1.10.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('The login came from [IP_ADDRESS_1].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('The login came from [IP_ADDRESS_1].');
 });
 
 it('redacts MAC addresses by default', function (): void {
@@ -119,14 +182,14 @@ it('redacts MAC addresses by default', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('The router MAC is 00:1A:2B:3C:4D:5E'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('The router MAC is [MAC_ADDRESS_1]');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('The router MAC is [MAC_ADDRESS_1]');
 });
 
 it('redacts URLs by default', function (): void {
@@ -138,14 +201,14 @@ it('redacts URLs by default', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Look at http://example.com, check the page https://example.com, visit the site at www.example.com, or https://127.0.0.1:8080, or view the example.com/dashboard.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Look at [URL_1], check the page [URL_2], visit the site at [URL_3], or [URL_4], or view the [URL_5].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Look at [URL_1], check the page [URL_2], visit the site at [URL_3], or [URL_4], or view the [URL_5].');
 });
 
 it('redacts http URLs with fragments', function (): void {
@@ -157,14 +220,14 @@ it('redacts http URLs with fragments', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('See http://example.com/docs#section-1 for details.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('See [URL_1] for details.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('See [URL_1] for details.');
 });
 
 it('redacts URLs with ports', function (): void {
@@ -176,14 +239,14 @@ it('redacts URLs with ports', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Dev server at http://localhost:8080/api is ready.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Dev server at [URL_1] is ready.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Dev server at [URL_1] is ready.');
 });
 
 it('strips trailing punctuation from scheme URLs', function (): void {
@@ -195,14 +258,14 @@ it('strips trailing punctuation from scheme URLs', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Visit https://example.com, it is great.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Visit [URL_1], it is great.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Visit [URL_1], it is great.');
 });
 
 it('redacts bare domains that start with www.', function (): void {
@@ -214,14 +277,14 @@ it('redacts bare domains that start with www.', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Go to www.example.com today.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Go to [URL_1] today.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Go to [URL_1] today.');
 });
 
 it('redacts bare domains that include a path', function (): void {
@@ -233,14 +296,14 @@ it('redacts bare domains that include a path', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Repo at github.com/org/repo/pull/123.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Repo at [URL_1].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Repo at [URL_1].');
 });
 
 it('does not redact bare domains in prose without a path or www prefix', function (): void {
@@ -250,15 +313,15 @@ it('does not redact bare domains in prose without a path or www prefix', functio
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('I love github.com and use it daily.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
     // No PII detected → no log, prompt unchanged
-    expect($forwardedPrompt->prompt)->toBe('I love github.com and use it daily.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('I love github.com and use it daily.');
 });
 
 it('does not redact bare domains at end of sentence', function (): void {
@@ -268,14 +331,14 @@ it('does not redact bare domains at end of sentence', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('My favourite site is laravel.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('My favourite site is laravel.com.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('My favourite site is laravel.com.');
 });
 
 it('does not redact bare domains inside parentheses', function (): void {
@@ -285,14 +348,14 @@ it('does not redact bare domains inside parentheses', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('See docs (example.com) for more.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('See docs (example.com) for more.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('See docs (example.com) for more.');
 });
 
 it('does not redact malformed scheme URLs without a host', function (): void {
@@ -302,14 +365,14 @@ it('does not redact malformed scheme URLs without a host', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Broken link: http://?foo=bar.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Broken link: http://?foo=bar.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Broken link: http://?foo=bar.');
 });
 
 it('does not redact scheme-only fragments', function (): void {
@@ -319,14 +382,14 @@ it('does not redact scheme-only fragments', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Type http:// here.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Type http:// here.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Type http:// here.');
 });
 
 it('prefers the full scheme URL over an overlapping bare domain', function (): void {
@@ -338,15 +401,15 @@ it('prefers the full scheme URL over an overlapping bare domain', function (): v
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Check https://example.com/path for updates.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
     // Must be a single [URL_1] covering the full scheme URL, not two separate redactions
-    expect($forwardedPrompt->prompt)->toBe('Check [URL_1] for updates.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Check [URL_1] for updates.');
 });
 
 it('redacts URLs alongside emails and phone numbers', function (): void {
@@ -358,14 +421,14 @@ it('redacts URLs alongside emails and phone numbers', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com or visit https://example.com/help or call 07123456789.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email [EMAIL_1] or visit [URL_1] or call [PHONE_1].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email [EMAIL_1] or visit [URL_1] or call [PHONE_1].');
 });
 
 it('blocks credit cards by default', function (): void {
@@ -375,7 +438,7 @@ it('blocks credit cards by default', function (): void {
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('My card is 4111 1111 1111 1111.'),
-        fn (AgentPrompt $prompt) => $prompt,
+        fn (PendingStep $step) => $step,
     ))->toThrow(PIIRedactorException::class);
 });
 
@@ -386,7 +449,7 @@ it('blocks api keys by default', function (): void {
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('Use sk-abcdefghijklmnopqrstuvwxyz1234567890ABCDE for this request.'),
-        fn (AgentPrompt $prompt) => $prompt,
+        fn (PendingStep $step) => $step,
     ))->toThrow(PIIRedactorException::class);
 });
 
@@ -397,7 +460,7 @@ it('blocks bearer tokens by default', function (): void {
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890'),
-        fn (AgentPrompt $prompt) => $prompt,
+        fn (PendingStep $step) => $step,
     ))->toThrow(PIIRedactorException::class);
 });
 
@@ -416,7 +479,7 @@ it('logs safely and continues unchanged when action is log', function (): void {
             ]);
 
             expect($context['agent'])->toBe(PIIRedactorTestAgent::class);
-            expect($context['provider'])->toBe(PIIRedactorTestProvider::class);
+            expect($context['provider'])->toBe('test-provider');
             expect($context['model'])->toBe('test-model');
             expect($context['entities'])->toBe(['email' => 1]);
             expect($context)->not->toHaveKey('prompt_preview');
@@ -433,15 +496,15 @@ it('logs safely and continues unchanged when action is log', function (): void {
 
     $result = $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
     expect($result)->toBe('continued');
-    expect($forwardedPrompt->prompt)->toBe('Email victor@example.com.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email victor@example.com.');
 });
 
 it('can include a prompt preview in logs when enabled', function (): void {
@@ -460,7 +523,7 @@ it('can include a prompt preview in logs when enabled', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        fn (AgentPrompt $prompt) => 'continued',
+        fn (PendingStep $step) => 'continued',
     );
 });
 
@@ -476,15 +539,15 @@ it('masks detected values when action is mask', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com or call 07123456789.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toContain('v*****@example.com');
-    expect($forwardedPrompt->prompt)->toContain('*******6789');
+    expect(piiStepPrompt($forwardedPrompt))->toContain('v*****@example.com');
+    expect(piiStepPrompt($forwardedPrompt))->toContain('*******6789');
 });
 
 it('uses config values when constructor values are not provided', function (): void {
@@ -499,14 +562,14 @@ it('uses config values when constructor values are not provided', function (): v
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email v*****@example.com.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email v*****@example.com.');
 });
 
 it('allows constructor values to override config values', function (): void {
@@ -520,7 +583,7 @@ it('allows constructor values to override config values', function (): void {
 
     expect(fn () => $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        fn (AgentPrompt $prompt) => $prompt,
+        fn (PendingStep $step) => $step,
     ))->toThrow(PIIRedactorException::class);
 });
 
@@ -535,14 +598,14 @@ it('falls back to internal defaults when config section is missing', function ()
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email [EMAIL_1].');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email [EMAIL_1].');
 });
 
 it('ignores allowed email addresses', function (): void {
@@ -556,8 +619,8 @@ it('ignores allowed email addresses', function (): void {
 
     $receivedPrompt = null;
 
-    $result = $redactor->handle($prompt, function (AgentPrompt $prompt) use (&$receivedPrompt): string {
-        $receivedPrompt = $prompt;
+    $result = $redactor->handle($prompt, function (PendingStep $step) use (&$receivedPrompt): string {
+        $receivedPrompt = $step;
 
         return 'continued';
     });
@@ -577,8 +640,8 @@ it('ignores allowed email domains', function (): void {
 
     $receivedPrompt = null;
 
-    $result = $redactor->handle($prompt, function (AgentPrompt $prompt) use (&$receivedPrompt): string {
-        $receivedPrompt = $prompt;
+    $result = $redactor->handle($prompt, function (PendingStep $step) use (&$receivedPrompt): string {
+        $receivedPrompt = $step;
 
         return 'continued';
     });
@@ -598,14 +661,14 @@ it('supports custom replacement formats', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email <EMAIL:1>.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email <EMAIL:1>.');
 });
 
 it('only detects enabled entities', function (): void {
@@ -621,14 +684,14 @@ it('only detects enabled entities', function (): void {
 
     $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com or call 07123456789.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
-    expect($forwardedPrompt->prompt)->toBe('Email [EMAIL_1] or call 07123456789.');
+    expect(piiStepPrompt($forwardedPrompt))->toBe('Email [EMAIL_1] or call 07123456789.');
 });
 
 it('does not call the next middleware when blocking', function (): void {
@@ -641,7 +704,7 @@ it('does not call the next middleware when blocking', function (): void {
     try {
         $redactor->handle(
             makePIIRedactorAgentPrompt('My card is 4111 1111 1111 1111.'),
-            function (AgentPrompt $prompt) use (&$nextWasCalled): void {
+            function (PendingStep $step) use (&$nextWasCalled): void {
                 $nextWasCalled = true;
             },
         );
@@ -656,13 +719,13 @@ it('passes detection results to a custom callback', function (): void {
     Log::shouldReceive('warning')->once();
 
     $redactor = new PIIRedactor(
-        callback: function (AgentPrompt $prompt, Closure $next, RedactionResult $result): mixed {
+        callback: function (PendingStep $step, Closure $next, RedactionResult $result): mixed {
             expect($result->hasDetections())->toBeTrue();
             expect($result->detections[0]->type)->toBe('email');
             expect($result->detections[0]->value)->toBe('victor@example.com');
 
             return $next(
-                $prompt->prepend('Custom callback handled PII.')
+                $step->withMessages([new UserMessage('Custom callback handled PII.')])
             );
         },
     );
@@ -671,15 +734,15 @@ it('passes detection results to a custom callback', function (): void {
 
     $result = $redactor->handle(
         makePIIRedactorAgentPrompt('Email victor@example.com.'),
-        function (AgentPrompt $prompt) use (&$forwardedPrompt): string {
-            $forwardedPrompt = $prompt;
+        function (PendingStep $step) use (&$forwardedPrompt): string {
+            $forwardedPrompt = $step;
 
             return 'continued';
         },
     );
 
     expect($result)->toBe('continued');
-    expect($forwardedPrompt->prompt)->toStartWith('Custom callback handled PII.');
+    expect(piiStepPrompt($forwardedPrompt))->toStartWith('Custom callback handled PII.');
 });
 
 it('throws an exception for unsupported actions', function (): void {
@@ -699,9 +762,7 @@ it('allows resumed runs with clean approval decisions to continue', function ():
         'call_1' => Decision::edit(['subject' => 'Quarterly summary']),
     ]));
 
-    $result = $redactor->handle($prompt, fn (AgentPrompt $prompt): string => 'next-called');
-
-    expect($result)->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('detects PII in edited tool arguments on a resumed run', function (): void {
@@ -721,7 +782,7 @@ it('detects PII in edited tool arguments on a resumed run', function (): void {
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('detects PII in rejection results on a resumed run', function (): void {
@@ -735,7 +796,7 @@ it('detects PII in rejection results on a resumed run', function (): void {
         'call_1' => Decision::reject('Cancelled, email victor@example.com instead.'),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('blocks high risk entities found in approval decisions', function (): void {
@@ -747,15 +808,7 @@ it('blocks high risk entities found in approval decisions', function (): void {
         'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
     ]));
 
-    $nextCalled = false;
-
-    expect(fn () => $redactor->handle($prompt, function () use (&$nextCalled): string {
-        $nextCalled = true;
-
-        return 'next-called';
-    }))->toThrow(PIIRedactorException::class);
-
-    expect($nextCalled)->toBeFalse();
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->toThrow(PIIRedactorException::class);
 });
 
 it('blocks an unquoted card number in edited tool arguments', function (): void {
@@ -767,7 +820,7 @@ it('blocks an unquoted card number in edited tool arguments', function (): void 
         'call_1' => Decision::edit(['card' => 4111111111111111]),
     ]));
 
-    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))
         ->toThrow(PIIRedactorException::class);
 });
 
@@ -782,7 +835,7 @@ it('degrades redact to logging on a resumed run', function (): void {
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('degrades mask to logging on a resumed run', function (): void {
@@ -796,7 +849,7 @@ it('degrades mask to logging on a resumed run', function (): void {
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('does not report a degraded action when the run is blocked', function (): void {
@@ -810,7 +863,7 @@ it('does not report a degraded action when the run is blocked', function (): voi
         'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
     ]));
 
-    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))
         ->toThrow(PIIRedactorException::class);
 });
 
@@ -823,7 +876,7 @@ it('blocks approval decision detections when the action is block', function (): 
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    expect(fn () => $redactor->handle($prompt, fn (): string => 'next-called'))
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))
         ->toThrow(PIIRedactorException::class);
 });
 
@@ -836,7 +889,7 @@ it('skips approval decision scanning when disabled', function (): void {
         'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('passes approval decision detections to a custom callback', function (): void {
@@ -845,10 +898,10 @@ it('passes approval decision detections to a custom callback', function (): void
     $received = null;
 
     $redactor = new PIIRedactor(
-        callback: function (AgentPrompt $prompt, Closure $next, RedactionResult $result) use (&$received): string {
-            $received = $result;
+        callback: function (AgentPrompt $prompt, ?Closure $next, RedactionResult $result) use (&$received): void {
+            expect($next)->toBeNull();
 
-            return 'callback-handled';
+            $received = $result;
         },
     );
 
@@ -856,7 +909,7 @@ it('passes approval decision detections to a custom callback', function (): void
         'call_1' => Decision::edit(['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('callback-handled');
+    $redactor->inspectApprovalDecisions($prompt);
     expect($received->detections)->toHaveCount(1);
     expect($received->detections[0]->type)->toBe('api_key');
 });
@@ -872,7 +925,7 @@ it('includes segment previews in approval decision logs when enabled', function 
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    $redactor->handle($prompt, fn (): string => 'next-called');
+    $redactor->inspectApprovalDecisions($prompt);
 });
 
 it('reports detections across multiple approval decisions', function (): void {
@@ -890,7 +943,7 @@ it('reports detections across multiple approval decisions', function (): void {
         'call_2' => Decision::reject('Blocked at 192.168.1.1.'),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
 });
 
 it('keeps approval decision scanning enabled when an older published config omits the key', function (): void {
@@ -907,5 +960,101 @@ it('keeps approval decision scanning enabled when an older published config omit
         'call_1' => Decision::edit(['recipient' => 'victor@example.com']),
     ]));
 
-    expect($redactor->handle($prompt, fn (): string => 'next-called'))->toBe('next-called');
+    expect(fn () => $redactor->inspectApprovalDecisions($prompt))->not->toThrow(Throwable::class);
+});
+
+it('redacts every user message in the step history', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $step = makePIIRedactorStep([
+        new UserMessage('My email is victor@example.com.'),
+        new AssistantMessage('Thanks.'),
+        new UserMessage('Call me on 07123456789.'),
+    ]);
+
+    $forwarded = null;
+
+    $redactor->handle($step, function (PendingStep $step) use (&$forwarded): string {
+        $forwarded = $step;
+
+        return 'continued';
+    });
+
+    expect($forwarded->messages[0]->content)->toBe('My email is [EMAIL_1].');
+    expect($forwarded->messages[1]->content)->toBe('Thanks.');
+    expect($forwarded->messages[2]->content)->toBe('Call me on [PHONE_1].');
+});
+
+it('repeats the redaction on a later step without logging again', function (): void {
+    Log::shouldReceive('warning')->never();
+
+    $redactor = new PIIRedactor;
+
+    $step = makePIIRedactorStep([
+        new UserMessage('Email victor@example.com about this.'),
+        new AssistantMessage('', collect([new ToolCall('call_1', 'lookup', [])])),
+        new ToolResultMessage(collect([new ToolResult('call_1', 'lookup', [], 'Found.')])),
+    ], number: 1);
+
+    $forwarded = null;
+
+    $redactor->handle($step, function (PendingStep $step) use (&$forwarded): string {
+        $forwarded = $step;
+
+        return 'continued';
+    });
+
+    expect(piiStepPrompt($forwarded))->toBe('Email [EMAIL_1] about this.');
+});
+
+it('keeps prompt attachments when it redacts the prompt', function (): void {
+    Log::shouldReceive('warning')->once();
+
+    $redactor = new PIIRedactor;
+
+    $forwarded = null;
+
+    $redactor->handle(makePIIRedactorStep([new UserMessage('Email victor@example.com.', ['attachment'])]), function (PendingStep $step) use (&$forwarded): string {
+        $forwarded = $step;
+
+        return 'continued';
+    });
+
+    $message = $forwarded->messages[0];
+
+    expect($message)->toBeInstanceOf(UserMessage::class);
+    expect($message instanceof UserMessage ? $message->attachments->all() : null)->toBe(['attachment']);
+});
+
+it('blocks a high risk entity in edited arguments on the first step of a resumed run', function (): void {
+    Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => $context['source'] === 'approval_decisions'
+            && $context['step'] === 0
+            && $context['segments'][0]['field'] === 'arguments.token');
+
+    $redactor = new PIIRedactor;
+
+    $step = makePIIRedactorResumedStep([
+        new ToolResult('call_1', 'send', ['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456'], 'Sent.'),
+    ]);
+
+    expect(fn () => $redactor->handle($step, fn (): string => 'next-called'))
+        ->toThrow(PIIRedactorException::class);
+});
+
+it('skips the resumed step scan when the listener already inspected the decisions', function (): void {
+    Log::shouldReceive('warning')->never();
+
+    resolve(ApprovalDecisionLedger::class)->markInspected('inv_1');
+
+    $redactor = new PIIRedactor;
+
+    $step = makePIIRedactorResumedStep([
+        new ToolResult('call_1', 'send', ['token' => 'sk-abcdefghijklmnopqrstuvwxyz123456'], 'Sent.'),
+    ]);
+
+    expect($redactor->handle($step, fn (): string => 'next-called'))->toBe('next-called');
 });

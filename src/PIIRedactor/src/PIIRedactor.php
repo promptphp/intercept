@@ -7,6 +7,7 @@ namespace PromptPHP\Intercept\PIIRedactor;
 use Closure;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Laravel\Ai\PendingStep;
 use Laravel\Ai\Prompts\AgentPrompt;
 use PromptPHP\Intercept\PIIRedactor\Defaults\PIIRedactorDefaults;
 use PromptPHP\Intercept\PIIRedactor\Detectors\Contracts\Detector;
@@ -16,12 +17,16 @@ use PromptPHP\Intercept\PIIRedactor\Enums\EntityTypes;
 use PromptPHP\Intercept\PIIRedactor\Exceptions\PIIRedactorException;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\Detection;
 use PromptPHP\Intercept\PIIRedactor\ValueObjects\RedactionResult;
+use PromptPHP\Intercept\Support\ApprovalDecisionLedger;
+use PromptPHP\Intercept\Support\Concerns\InspectsPendingSteps;
 use PromptPHP\Intercept\Support\Concerns\ScansApprovalDecisions;
+use PromptPHP\Intercept\Support\Contracts\InspectsApprovalDecisions;
 use PromptPHP\Intercept\Support\InterceptConfig;
 use PromptPHP\Intercept\Support\ValueObjects\ApprovalDecisionSegment;
 
-class PIIRedactor
+class PIIRedactor implements InspectsApprovalDecisions
 {
+    use InspectsPendingSteps;
     use ScansApprovalDecisions;
 
     /**
@@ -162,100 +167,200 @@ class PIIRedactor
     }
 
     /**
-     * Handle the incoming prompt.
+     * Handle a generation step.
      *
-     * @param AgentPrompt $prompt The agent being prompted.
-     * @param Closure     $next   The next middleware in the pipeline.
+     * The SDK runs agent middleware on every step of a run, and a rewrite of the step history
+     * applies to one step only. The `redact` and `mask` actions therefore rewrite every user
+     * message in the history on every step, so replayed history from earlier turns never
+     * reaches the provider with PII in it. Detections are logged and blocked only on the step
+     * that starts a new turn, so a run logs its prompt once.
+     *
+     * A callback replaces the configured action. It runs on every step whose newest user
+     * message carries PII, so it can check `$step->isFirstStep()` to act once per run.
+     *
+     * @param PendingStep $step The generation step.
+     * @param Closure     $next The next middleware in the pipeline.
      */
-    public function handle(AgentPrompt $prompt, Closure $next): mixed
+    public function handle(PendingStep $step, Closure $next): mixed
     {
-        if ($prompt->hasApprovalDecisions()) {
-            return $this->handleApprovalDecisions($prompt, $next);
+        if ($this->resumesFromApproval($step) && $this->scanApprovalDecisions && ! $this->ledger()->wasInspected($step->invocationId)) {
+            $detected = $this->detectInSegments($this->resumedApprovalSegments($step));
+
+            if ($detected !== []) {
+                $this->logApprovalDecisionDetections($detected, $this->stepLogContext($step));
+
+                if ($this->callback !== null) {
+                    return ($this->callback)($step, $next, $this->approvalDecisionResult($detected));
+                }
+
+                $this->blockApprovalDecisionDetections($detected);
+            }
         }
 
-        $result = $this->detect($prompt->prompt);
+        $latest = $this->latestUserMessage($step);
 
-        if (! $result->hasDetections()) {
-            return $next($prompt);
+        $result = $latest !== null
+            ? $this->detect((string) $latest->content)
+            : null;
+
+        if ($result?->hasDetections()) {
+            if ($this->startsNewTurn($step) && ($this->logDetections || $this->action === ActionTypes::LOG)) {
+                $this->log($step, $result);
+            }
+
+            if ($this->callback !== null) {
+                return ($this->callback)($step, $next, $result);
+            }
+
+            if ($this->startsNewTurn($step) && ($this->hasBlockedEntity($result) || $this->action === ActionTypes::BLOCK)) {
+                $this->block();
+            }
         }
 
-        if ($this->logDetections || $this->action === ActionTypes::LOG) {
-            $this->log($prompt, $result);
-        }
-
-        if ($this->callback !== null) {
-            return ($this->callback)($prompt, $next, $result);
-        }
-
-        if ($this->hasBlockedEntity($result) || $this->action === ActionTypes::BLOCK) {
-            $this->block();
-        }
-
-        return match ($this->action) {
-            ActionTypes::LOG  => $next($prompt),
-            ActionTypes::MASK => $next($prompt->revise($this->mask($prompt->prompt, $result->detections)->text)),
-            default           => $next($prompt->revise($this->redact($prompt->prompt, $result->detections)->text)),
-        };
+        return $next($this->rewrite($step));
     }
 
     /**
-     * Handle a prompt resuming a paused run from tool approval decisions.
+     * Inspect the approval decisions carried by a resumed prompt.
      *
-     * A resumed prompt carries no prompt text. The only new content is what a human supplied
-     * while resolving the pending tool calls, so that is what gets scanned here.
-     *
-     * Resumed prompts are immutable by design, because a paused turn must replay verbatim
-     * against the provider that recorded it. The `redact` and `mask` actions therefore have
+     * The SDK applies the decisions before the first step, so this runs from a listener on the
+     * prompt event. A resumed turn must replay verbatim, so the `redact` and `mask` actions have
      * nowhere to write their output and degrade to logging, while blocked entities and the
-     * `block` action still stop the run.
+     * `block` action still stop the run before any approved or edited tool call executes.
      *
-     * @param AgentPrompt $prompt The agent being prompted.
-     * @param Closure     $next   The next middleware in the pipeline.
+     * A callback receives the prompt, a null `$next`, and the result. Its return value is
+     * ignored. Throw from the callback to stop the run.
+     *
+     * @param AgentPrompt $prompt The prompt that resumes the paused run.
      */
-    protected function handleApprovalDecisions(AgentPrompt $prompt, Closure $next): mixed
+    public function inspectApprovalDecisions(AgentPrompt $prompt): void
     {
         if (! $this->scanApprovalDecisions) {
-            return $next($prompt);
+            return;
         }
 
-        $detected   = [];
-        $detections = [];
+        $detected = $this->detectInSegments($this->approvalDecisionSegments($prompt->approvalDecisions));
 
-        foreach ($this->approvalDecisionSegments($prompt->approvalDecisions) as $segment) {
-            $result = $this->detect($segment->text);
-
-            if (! $result->hasDetections()) {
-                continue;
-            }
-
-            $detected[] = ['segment' => $segment, 'detections' => $result->detections];
-            $detections = [...$detections, ...$result->detections];
+        if ($detected === []) {
+            return;
         }
 
-        if ($detections === []) {
-            return $next($prompt);
-        }
-
-        $result = new RedactionResult(
-            text: $prompt->prompt,
-            detections: $detections,
-        );
-
-        $blocking = $this->hasBlockedEntity($result) || $this->action === ActionTypes::BLOCK;
-
-        if ($this->logDetections || $this->action === ActionTypes::LOG) {
-            $this->logApprovalDecisions($prompt, $detected, $blocking);
-        }
+        $this->logApprovalDecisionDetections($detected, $this->approvalPromptLogContext($prompt));
 
         if ($this->callback !== null) {
-            return ($this->callback)($prompt, $next, $result);
+            ($this->callback)($prompt, null, $this->approvalDecisionResult($detected));
+
+            return;
         }
 
-        if ($blocking) {
+        $this->blockApprovalDecisionDetections($detected);
+    }
+
+    /**
+     * Detect PII in approval decision segments.
+     *
+     * @param array<int, ApprovalDecisionSegment> $segments The segments to scan.
+     *
+     * @return array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}>
+     */
+    protected function detectInSegments(array $segments): array
+    {
+        $detected = [];
+
+        foreach ($segments as $segment) {
+            $result = $this->detect($segment->text);
+
+            if ($result->hasDetections()) {
+                $detected[] = ['segment' => $segment, 'detections' => $result->detections];
+            }
+        }
+
+        return $detected;
+    }
+
+    /**
+     * Combine the approval decision detections into one result.
+     *
+     * The text is empty, because the detections come from several decision values.
+     *
+     * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
+     */
+    protected function approvalDecisionResult(array $detected): RedactionResult
+    {
+        return new RedactionResult(
+            text: '',
+            detections: array_merge(...array_column($detected, 'detections')),
+        );
+    }
+
+    /**
+     * Log the PII found in approval decisions when logging is enabled.
+     *
+     * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
+     * @param array<string, mixed>                                                                   $context  The log context that identifies the run.
+     */
+    protected function logApprovalDecisionDetections(array $detected, array $context): void
+    {
+        if ($this->logDetections || $this->action === ActionTypes::LOG) {
+            $this->logApprovalDecisions($context, $detected, $this->blocksApprovalDecisions($detected));
+        }
+    }
+
+    /**
+     * Block the run when the PII found in approval decisions must stop it.
+     *
+     * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
+     */
+    protected function blockApprovalDecisionDetections(array $detected): void
+    {
+        if ($this->blocksApprovalDecisions($detected)) {
             $this->block();
         }
+    }
 
-        return $next($prompt);
+    /**
+     * Determine whether the PII found in approval decisions must stop the run.
+     *
+     * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
+     */
+    protected function blocksApprovalDecisions(array $detected): bool
+    {
+        return $this->action === ActionTypes::BLOCK
+            || $this->hasBlockedEntity($this->approvalDecisionResult($detected));
+    }
+
+    /**
+     * Apply the configured rewrite to every user message of the step.
+     *
+     * The `block` and `log` actions do not rewrite the step.
+     *
+     * @param PendingStep $step The step to rewrite.
+     */
+    protected function rewrite(PendingStep $step): PendingStep
+    {
+        if (! in_array($this->action, [ActionTypes::REDACT, ActionTypes::MASK], true)) {
+            return $step;
+        }
+
+        return $this->mapUserMessages($step, function (string $content): string {
+            $result = $this->detect($content);
+
+            if (! $result->hasDetections()) {
+                return $content;
+            }
+
+            return $this->action === ActionTypes::MASK
+                ? $this->mask($content, $result->detections)->text
+                : $this->redact($content, $result->detections)->text;
+        });
+    }
+
+    /**
+     * Get the record of runs whose approval decisions were already inspected.
+     */
+    protected function ledger(): ApprovalDecisionLedger
+    {
+        return resolve(ApprovalDecisionLedger::class);
     }
 
     /**
@@ -345,26 +450,24 @@ class PIIRedactor
     /**
      * Log detected PII safely.
      *
-     * @param AgentPrompt     $prompt The agent being prompted.
+     * @param PendingStep     $step   The step that starts the turn.
      * @param RedactionResult $result The result of the detection, including any found PII.
      */
-    protected function log(AgentPrompt $prompt, RedactionResult $result): void
+    protected function log(PendingStep $step, RedactionResult $result): void
     {
         $context = [
-            'agent'        => $prompt->agent::class,
-            'provider'     => $prompt->provider()::class,
-            'model'        => $prompt->model,
+            ...$this->stepLogContext($step),
             'entities'     => $this->summariseEntities($result->detections),
             'value_hashes' => array_map(
                 fn (Detection $detection): string => hash('sha256', $detection->value),
                 $result->detections,
             ),
-            'prompt_hash' => hash('sha256', $prompt->prompt),
+            'prompt_hash' => hash('sha256', $result->text),
             'timestamp'   => now()->toIso8601String(),
         ];
 
         if ($this->logPreview) {
-            $context['prompt_preview'] = str($prompt->prompt)->limit(300)->toString();
+            $context['prompt_preview'] = str($result->text)->limit(300)->toString();
         }
 
         Log::warning('PII detected in agent prompt.', $context);
@@ -373,11 +476,11 @@ class PIIRedactor
     /**
      * Log PII detected in tool approval decisions safely.
      *
-     * @param AgentPrompt                                                                            $prompt   The agent being prompted.
+     * @param array<string, mixed>                                                                   $context  The log context that identifies the run.
      * @param array<int, array{segment: ApprovalDecisionSegment, detections: array<int, Detection>}> $detected The detections grouped by decision segment.
      * @param bool                                                                                   $blocking Whether the run is being stopped.
      */
-    protected function logApprovalDecisions(AgentPrompt $prompt, array $detected, bool $blocking): void
+    protected function logApprovalDecisions(array $context, array $detected, bool $blocking): void
     {
         $detections = [];
         $segments   = [];
@@ -399,9 +502,7 @@ class PIIRedactor
         }
 
         $context = [
-            'agent'        => $prompt->agent::class,
-            'provider'     => $prompt->provider()::class,
-            'model'        => $prompt->model,
+            ...$context,
             'source'       => 'approval_decisions',
             'entities'     => $this->summariseEntities($detections),
             'segments'     => $segments,

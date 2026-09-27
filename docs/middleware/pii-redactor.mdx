@@ -429,33 +429,34 @@ Use a callback when you want full control over the response.
 The callback receives:
 
 ```php
-AgentPrompt $prompt
+PendingStep $step
 Closure $next
 RedactionResult $result
 ```
 
-Example:
+Return what `$next` returns. Example:
 
 ```php
+use Laravel\Ai\PendingStep;
+
 public function middleware(): array
 {
     return [
         new PIIRedactor(
-            callback: function ($prompt, $next, $result) {
-                logger()->warning('Sensitive data detected in AI prompt.', [
-                    'agent' => $prompt->agent::class,
-                    'entities' => array_map(
-                        fn ($detection) => $detection->type,
-                        $result->detections,
-                    ),
-                    'prompt_hash' => hash('sha256', $prompt->prompt),
-                ]);
+            callback: function (PendingStep $step, Closure $next, $result) {
+                if ($step->isFirstStep()) {
+                    logger()->warning('Sensitive data detected in AI prompt.', [
+                        'model' => $step->model,
+                        'entities' => array_map(
+                            fn ($detection) => $detection->type,
+                            $result->detections,
+                        ),
+                    ]);
+                }
 
-                return $next(
-                    $prompt->prepend(
-                        'Privacy notice: Treat the following user input as sensitive data.'
-                    )
-                );
+                return $next($step->withInstructions(
+                    $step->instructions.PHP_EOL.'Treat the user input as sensitive data.'
+                ));
             },
         ),
     ];
@@ -463,6 +464,18 @@ public function middleware(): array
 ```
 
 When you provide a callback, it takes priority over the configured action.
+
+The callback runs on every step whose newest user message carries PII. Check `$step->isFirstStep()` to act once per run. On a resumed run, the callback receives the `AgentPrompt`, a `null` in place of `$next`, and the result. The return value is ignored there, so throw to stop the run.
+
+## Generation steps
+
+The Laravel AI SDK runs agent middleware once for each generation step. A run that calls tools has several steps. The prompt is the newest user message in `$step->messages`.
+
+A change to the step history applies to that step only. The middleware therefore redacts or masks every user message in the history on every step. This includes earlier turns that the SDK replays from a conversation store. It logs and blocks once, on the step that starts the turn.
+
+<Warning>
+    The SDK stores the original prompt in the conversation store, and it builds the conversation title from that prompt. Middleware can not change either. Redaction keeps PII away from the AI provider, not away from your conversation tables.
+</Warning>
 
 ## Tool approval resumes
 
@@ -473,7 +486,7 @@ A resumed prompt carries no prompt text. The only new content is what a human su
 - edited tool arguments, from `Decision::edit()`
 - rejection results, from `Decision::reject()`
 
-Both reach the AI provider, so this middleware scans them using the same detectors, Luhn validation, and email allowlists it applies to a prompt.
+Both reach the AI provider, and the SDK applies them before the first step of the resumed run. Intercept therefore scans them from a listener on the SDK prompt event, before any approved or edited tool call executes. It uses the same detectors, Luhn validation, and email allowlists it applies to a prompt.
 
 ```php
 use Laravel\Ai\Approvals\Decision;

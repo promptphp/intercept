@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PromptPHP\Intercept\Tests;
 
+use Laravel\Ai\AiServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PromptPHP\Intercept\Support\InterceptServiceProvider;
 
@@ -19,6 +20,7 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
+            AiServiceProvider::class,
             InterceptServiceProvider::class,
         ];
     }

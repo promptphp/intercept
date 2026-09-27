@@ -15,7 +15,7 @@
     ],
     "require": {
         "php": "^8.3",
-        "laravel/ai": "<1.0",
+        "laravel/ai": "^1.0",
         "promptphp/intercept-injection-guard": "*",
         "promptphp/intercept-pii-redactor": "*",
         "promptphp/intercept-support": "*"
