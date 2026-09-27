@@ -420,7 +420,7 @@ Because `sanitize` and `warn` cannot neutralise the content on this path, they l
 
 ### Blocked resumes
 
-When a resumed run is blocked, the exception names the offending tool call and field so the failure can be traced:
+When Injection Guard blocks a resumed run, the exception names the offending tool call and field so you can trace the failure:
 
 ```text
 Prompt injection attempt detected in tool approval decisions [call_7: arguments.filters.note].
