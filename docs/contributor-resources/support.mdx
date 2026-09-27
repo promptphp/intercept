@@ -6,7 +6,7 @@ sidebarTitle: "Support utilities"
 
 `promptphp/intercept-support` provides shared support utilities and configuration for the Intercept middleware ecosystem.
 
-Most users do not need to install or use this package directly. It is installed automatically when required by an Intercept middleware package.
+Most users do not need to install or use this package directly. Composer installs it automatically when an Intercept middleware package requires it.
 
 The support package provides shared infrastructure used across Intercept packages, including:
 
@@ -45,7 +45,7 @@ $config = InterceptConfig::middleware('injection_guard', [
 ]);
 ```
 
-The helper merges the published config section with the middleware's internal defaults. If the section is missing, the defaults are returned.
+The helper merges the published config section with the middleware's internal defaults. If the section is missing, the helper returns the defaults.
 
 ## Missing config sections
 

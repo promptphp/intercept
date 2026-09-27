@@ -76,7 +76,7 @@ By default, the middleware will:
 
 The recommended default action is `redact`.
 
-Some entities can still be blocked even when the action is `redact`. By default, credit cards, API keys, and bearer tokens are blocked.
+Some entities can still be blocked even when the action is `redact`. By default, the middleware blocks credit cards, API keys, and bearer tokens.
 
 ## Supported entities
 
@@ -474,7 +474,7 @@ The Laravel AI SDK runs agent middleware once for each generation step. A run th
 A change to the step history applies to that step only. The middleware therefore redacts or masks every user message in the history on every step. This includes earlier turns that the SDK replays from a conversation store. It logs and blocks once, on the step that starts the turn.
 
 <Warning>
-    The SDK stores the original prompt in the conversation store, and it builds the conversation title from that prompt. Middleware can not change either. Redaction keeps PII away from the AI provider, not away from your conversation tables.
+    The SDK stores the original prompt in the conversation store, and it builds the conversation title from that prompt. Middleware cannot change either. Redaction keeps PII away from the AI provider, not away from your conversation tables.
 </Warning>
 
 ## Tool approval resumes

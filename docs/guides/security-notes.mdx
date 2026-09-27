@@ -96,7 +96,7 @@ It does not scan:
 - attachments sent alongside the prompt
 - the model's response text
 
-It can not change what the SDK stores. The conversation store keeps the original prompt, and the SDK builds the conversation title from it.
+It cannot change what the SDK stores. The conversation store keeps the original prompt, and the SDK builds the conversation title from it.
 
 This matters most for indirect prompt injection. If a tool fetches a web page, reads a document, or queries a record that contains injected instructions, that content is handed to the model without passing through Intercept.
 
