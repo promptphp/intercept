@@ -14,9 +14,9 @@ Use it as part of a layered AI safety strategy.
 
 Intercept can inspect, redact, block, or modify prompts before they reach the provider.
 
-It cannot guarantee that every unsafe input will be detected.
+It cannot guarantee that it detects every unsafe input.
 
-It cannot guarantee that every sensitive value will be found.
+It cannot guarantee that it finds every sensitive value.
 
 It cannot replace application-level authorization, validation, access control, or tool permission checks.
 
@@ -118,11 +118,11 @@ Two limits are worth knowing.
 
 Resumed prompts are immutable, because a paused turn must replay verbatim against the provider that recorded it. Actions that rewrite the prompt cannot apply, so `redact`, `mask`, `sanitize`, and `warn` degrade to logging on this path. Only blocking genuinely stops the content.
 
-If your threat model requires that PII never reaches the provider, do not rely on `redact` alone. Add the relevant entity types to `block_entities`, or validate the edited arguments in your approval flow before they are submitted.
+If your threat model requires that PII never reaches the provider, do not rely on `redact` alone. Add the relevant entity types to `block_entities`, or validate the edited arguments in your approval flow before you submit them.
 
 ## Safe user-facing errors
 
-When a prompt is blocked, return a simple message.
+When Intercept blocks a prompt, return a simple message.
 
 Good:
 

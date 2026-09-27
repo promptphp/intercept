@@ -250,7 +250,7 @@ public function middleware(): array
 
 ### Blocking PII
 
-Use `block` when the prompt should stop as soon as supported PII is detected.
+Use `block` when the prompt should stop as soon as the middleware detects supported PII.
 
 ```php
 public function middleware(): array
@@ -263,7 +263,7 @@ public function middleware(): array
 }
 ```
 
-If PII is detected, the middleware throws a `PIIRedactorException`.
+If the middleware detects PII, it throws a `PIIRedactorException`.
 
 <Tip>
     You can also catch `InterceptException`, the parent exception class that all Intercept middleware throw.
@@ -295,7 +295,7 @@ Default blocked entities:
 ]
 ```
 
-This means a prompt containing a supported API key or bearer token will be blocked by default.
+This means the middleware blocks a prompt containing a supported API key or bearer token by default.
 
 You can override blocked entities:
 
