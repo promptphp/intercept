@@ -1,6 +1,5 @@
 ---
 title: "PII Redactor"
-description: "Use PIIRedactor to detect emails, phone numbers, credit cards, and secret-like data in Laravel AI agent prompts, then redact, mask, log, or block them."
 sidebarTitle: "PII Redactor"
 ---
 
@@ -21,7 +20,7 @@ composer require promptphp/intercept-pii-redactor
 ```
 
 <Tip>
-    If you prefer to install the main Intercept package to get the full middleware collection, run:
+    If you prefer to install the main intercept package to get the full middleware collection, run:
 </Tip>
 
 ```bash
@@ -76,7 +75,7 @@ By default, the middleware will:
 
 The recommended default action is `redact`.
 
-Some entities can still be blocked even when the action is `redact`. By default, the middleware blocks credit cards, API keys, and bearer tokens.
+Some entities can still be blocked even when the action is `redact`. By default, credit cards, API keys, and bearer tokens are blocked.
 
 ## Supported entities
 
@@ -97,7 +96,7 @@ Names, addresses, passports, national insurance numbers, and medical identifiers
 
 No configuration is required. The middleware works out of the box using safe internal defaults.
 
-You can override the defaults via the constructor or via the shared `config/intercept.php` file. Publish it with:
+The defaults may be overridden via the constructor or via the shared `config/intercept.php` file, published with:
 
 ```bash
 php artisan vendor:publish --tag=intercept-config
@@ -107,7 +106,7 @@ Explore the [configuration guide](/configuration) for more details on how to con
 
 ### Configuration priority
 
-Intercept resolves configuration in this order:
+Configuration is resolved in this order:
 
 ```mermaid placement="top-right"
    flowchart LR
@@ -263,10 +262,10 @@ public function middleware(): array
 }
 ```
 
-If the middleware detects PII, it throws a `PIIRedactorException`.
+If PII is detected, the middleware throws a `PIIRedactorException`.
 
 <Tip>
-    You can also catch `InterceptException`, the parent exception class that all Intercept middleware throw.
+    You may also catch the parent exception class `InterceptException` throwable by all Intercept middleware.
 </Tip>
 
 ```php
@@ -283,7 +282,7 @@ try {
 
 ### Blocked entities
 
-The middleware treats some entities as high-risk and blocks them by default, even when the action is `redact`.
+Some entities are treated as high-risk and are blocked by default, even when the action is `redact`.
 
 Default blocked entities:
 
@@ -295,7 +294,7 @@ Default blocked entities:
 ]
 ```
 
-This means the middleware blocks a prompt containing a supported API key or bearer token by default.
+This means a prompt containing a supported API key or bearer token will be blocked by default.
 
 You can override blocked entities:
 
@@ -429,64 +428,51 @@ Use a callback when you want full control over the response.
 The callback receives:
 
 ```php
-PendingStep $step
+AgentPrompt $prompt
 Closure $next
 RedactionResult $result
 ```
 
-Return what `$next` returns. Example:
+Example:
 
 ```php
-use Laravel\Ai\PendingStep;
-
 public function middleware(): array
 {
     return [
         new PIIRedactor(
-            callback: function (PendingStep $step, Closure $next, $result) {
-                if ($step->isFirstStep()) {
-                    logger()->warning('Sensitive data detected in AI prompt.', [
-                        'model' => $step->model,
-                        'entities' => array_map(
-                            fn ($detection) => $detection->type,
-                            $result->detections,
-                        ),
-                    ]);
-                }
+            callback: function ($prompt, $next, $result) {
+                logger()->warning('Sensitive data detected in AI prompt.', [
+                    'agent' => $prompt->agent::class,
+                    'entities' => array_map(
+                        fn ($detection) => $detection->type,
+                        $result->detections,
+                    ),
+                    'prompt_hash' => hash('sha256', $prompt->prompt),
+                ]);
 
-                return $next($step->withInstructions(
-                    $step->instructions.PHP_EOL.'Treat the user input as sensitive data.'
-                ));
+                return $next(
+                    $prompt->prepend(
+                        'Privacy notice: Treat the following user input as sensitive data.'
+                    )
+                );
             },
         ),
     ];
 }
 ```
 
-When you provide a callback, it takes priority over the configured action.
-
-The callback runs on every step whose newest user message carries PII. Check `$step->isFirstStep()` to act once per run. On a resumed run, the callback receives the `AgentPrompt`, a `null` in place of `$next`, and the result. The return value is ignored there, so throw to stop the run.
-
-## Generation steps
-
-The Laravel AI SDK runs agent middleware once for each generation step. A run that calls tools has several steps. The prompt is the newest user message in `$step->messages`.
-
-A change to the step history applies to that step only. The middleware therefore redacts or masks every user message in the history on every step. This includes earlier turns that the SDK replays from a conversation store. It logs and blocks once, on the step that starts the turn.
-
-<Warning>
-    The SDK stores the original prompt in the conversation store, and it builds the conversation title from that prompt. Middleware cannot change either. Redaction keeps PII away from the AI provider, not away from your conversation tables.
-</Warning>
+When a callback is provided, it takes priority over the configured action.
 
 ## Tool approval resumes
 
-When an agent pauses for tool approval, you resume the run by passing `Decisions` back to the agent instead of a new prompt.
+When an agent pauses for tool approval, the run is resumed by passing `Decisions` back to the agent instead of a new prompt.
 
 A resumed prompt carries no prompt text. The only new content is what a human supplied while resolving the pending tool calls:
 
 - edited tool arguments, from `Decision::edit()`
 - rejection results, from `Decision::reject()`
 
-Both reach the AI provider, and the SDK applies them before the first step of the resumed run. Intercept therefore scans them from a listener on the SDK prompt event, before any approved or edited tool call executes. It uses the same detectors, Luhn validation, and email allowlists it applies to a prompt.
+Both reach the AI provider, so this middleware scans them using the same detectors, Luhn validation, and email allowlists it applies to a prompt.
 
 ```php
 use Laravel\Ai\Approvals\Decision;
@@ -561,7 +547,7 @@ public function middleware(): array
 ```
 
 <Warning>
-    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot apply to a resumed run. Custom callbacks should use the detection `type` and `value` rather than `start` and `length`.
+    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot be applied to a resumed run, so custom callbacks should use the detection `type` and `value` rather than `start` and `length`.
 </Warning>
 
 ## Production rollout
