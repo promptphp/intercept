@@ -235,5 +235,98 @@ return [
              */
             'log_preview' => false,
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Budget Guard Middleware
+        |--------------------------------------------------------------------------
+        |
+        | The Budget Guard middleware estimates the cost of a generation step before
+        | the provider is called, and enforces per-request, per-session, and
+        | per-user-per-day spending budgets.
+        |
+        */
+        'budget_guard' => [
+
+            /*
+             * The action to take when a request would exceed its budget.
+             * Supported values: 'block', 'log', 'truncate'.
+             *
+             * 'truncate' only applies to the per-request budget: shrinking the current prompt
+             * cannot undo spend already recorded against a session or a user's day, so a
+             * session or daily breach degrades to 'block'.
+             */
+            'action' => 'block',
+
+            /**
+             * The maximum cost of a single run, in US dollars, including the cost already
+             * accrued by its earlier steps. Null disables this budget.
+             */
+            'max_cost_per_request' => null,
+
+            /**
+             * The maximum cost attributable to a session, in US dollars, within the session
+             * window below. Null disables this budget.
+             *
+             * Sessions are only tracked when a key can be resolved for the step. By default
+             * that is the agent's own conversation ID, for an agent that remembers its
+             * conversations. Supply a custom `sessionKeyResolver` to the middleware for
+             * anything else.
+             */
+            'max_cost_per_session' => null,
+
+            /**
+             * The maximum cost attributable to a user per calendar day, in US dollars.
+             * Null disables this budget.
+             *
+             * By default the user is the agent's conversation participant, falling back to the
+             * authenticated user. Supply a custom `userKeyResolver` to the middleware for
+             * anything else.
+             */
+            'max_cost_per_user_per_day' => null,
+
+            /**
+             * How many hours a session's spend is tracked for, from the first request that
+             * spends against it.
+             */
+            'session_window_hours' => 24,
+
+            /**
+             * The output tokens assumed for a step's response, since the real count is not
+             * known until the provider replies. Used only to estimate cost before the call.
+             */
+            'assumed_output_tokens' => 1000,
+
+            /**
+             * Custom pricing, merged over the built-in pricing table and keyed the same way:
+             * a model family name mapped to 'input', 'output', and optional 'cache_read' and
+             * 'cache_write' rates, in US dollars per million tokens. Entries here override a
+             * built-in rate for the same key.
+             */
+            'model_pricing' => [
+                // 'gpt-4o' => ['input' => 2.50, 'output' => 10.00],
+            ],
+
+            /**
+             * What to do when no pricing is known for the model a step runs on.
+             * Supported values: 'allow', 'block'.
+             *
+             * Pricing changes faster than this package releases, so an unpriced model is
+             * expected rather than exceptional. 'allow' keeps a model upgrade from taking an
+             * application down; 'block' guarantees a budget is never bypassed by one.
+             */
+            'unknown_model_action' => 'allow',
+
+            /**
+             * The cache store session and daily spend is recorded in. Null uses the default
+             * store configured for the application.
+             */
+            'cache_store' => null,
+
+            /**
+             * Whether to include a short prompt preview in logs.
+             */
+            'log_preview' => false,
+        ],
     ],
 ];

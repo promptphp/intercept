@@ -57,30 +57,24 @@ Current focus:
 - safe logging with value hashes and tool call provenance
 - optional global config through `config/intercept.php`
 
+### `promptphp/intercept-budget-guard`
+
+Estimates the cost of a generation step before the AI provider is called, and enforces per-request, per-session, and per-user-per-day spending budgets.
+
+Current focus:
+
+- per-request budget, including the cost already accrued by earlier steps of the same run
+- per-session and per-user-per-day budgets, tracked in the cache with a rolling window
+- a built-in pricing table for common Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral models, with family matching for dated and gateway-prefixed model ids
+- custom or overriding pricing
+- `block`, `log`, and `truncate` actions; `truncate` degrades to `block` for a session or daily breach, since shrinking the prompt cannot undo spend already recorded
+- configurable behaviour for an unpriced model: `allow` (unmetered) or `block`
+- safe logging with dollar amounts, never the session or user key spend was tracked against
+- optional global config through `config/intercept.php`
+
 ## Proposed package roadmap
 
 I have a few ideas in mind and I've tried to prioritize them based on value and ease of implementation. This file will receieve updates as they are implemented and more ideas are conceived.
-
-### `promptphp/intercept-budget-guard`
-
-Status: proposed next package.
-
-Budget Guard will look to protect applications from expensive, oversized, or abusive prompts before they reach the AI provider.
-
-Why this matters:
-
-AI requests can become expensive quickly. Your app should have validations in place for interesting scenarios but there's a need for that final gate just before hitting the AI provider. Budget Guard will look to provide a simple way to stop expensive requests before they hit the provider.
-
-Planned features:
-
-- maximum prompt characters
-- estimated token budget
-- estimated cost budget
-- per-agent limits
-- per-model limits
-- optional tenant or user budget keys
-- `block`, `log`, and `truncate` actions
-- configurable limits through `config/intercept.php`
 
 ## Contributing
 

@@ -50,7 +50,8 @@
                 "pages": [
                     "middleware/injection-guard",
                     "middleware/pii-redactor",
-                    "middleware/tool-approval-guard"
+                    "middleware/tool-approval-guard",
+                    "middleware/budget-guard"
                 ]
             },
             {

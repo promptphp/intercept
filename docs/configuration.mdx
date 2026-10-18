@@ -158,6 +158,29 @@ Note that `block_entities` stops the run whatever `action` is set to, so `action
 
 This middleware acts on the response rather than the prompt, because the model proposes the tool calls it guards. It has no mutating action, since a proposed tool call belongs to the paused turn the provider recorded.
 
+### Budget Guard options
+
+| Option                       | Type     | Default | Description                                                            |
+| ---------------------------- | -------- | ------- | ------------------------------------------------------------------------ |
+| `action`                     | `string` | `block` | How to handle a request that would exceed its budget.                  |
+| `max_cost_per_request`       | `float`  | `null`  | Maximum cost of a single run, in US dollars. `null` disables it.       |
+| `max_cost_per_session`       | `float`  | `null`  | Maximum cost attributable to a session, in US dollars.                 |
+| `max_cost_per_user_per_day`  | `float`  | `null`  | Maximum cost attributable to a user per day, in US dollars.            |
+| `session_window_hours`       | `int`    | `24`    | Hours a session's spend is tracked for, from its first request.        |
+| `assumed_output_tokens`      | `int`    | `1000`  | Output tokens assumed before the provider replies.                     |
+| `model_pricing`              | `array`  | `[]`    | Custom pricing, merged over the built-in table.                        |
+| `unknown_model_action`       | `string` | `allow` | What to do when no pricing is known for the step's model.              |
+| `cache_store`                | `string` | `null`  | The cache store session and daily spend is recorded in.                |
+| `log_preview`                | `bool`   | `false` | Whether logs may include a short prompt preview.                       |
+
+Supported actions:
+
+1. block
+2. log
+3. truncate
+
+Every budget is disabled until you set a limit. `truncate` only applies to the per-request budget; a session or daily breach degrades to `block`, since shrinking the current prompt cannot undo spend already recorded. `sessionKeyResolver`, `userKeyResolver`, and `tokenEstimator` are constructor-only options (closures cannot live in a config file). See the [Budget Guard guide](/middleware/budget-guard) for defaults and examples.
+
 ## Tool approval resumes
 
 When an agent pauses for tool approval and you resume it with `Decisions`, the prompt text is empty. The new content is whatever a human supplied while resolving the pending tool calls: edited tool arguments and rejection results.

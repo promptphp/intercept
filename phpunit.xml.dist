@@ -6,6 +6,7 @@
     <testsuites>
         <testsuite name="Intercept Test Suite">
             <directory>tests</directory>
+            <directory>src/BudgetGuard/tests</directory>
             <directory>src/InjectionGuard/tests</directory>
             <directory>src/Support/tests</directory>
             <directory>src/PIIRedactor/tests</directory>
@@ -15,6 +16,7 @@
 
     <source>
         <include>
+            <directory>src/BudgetGuard/src</directory>
             <directory>src/InjectionGuard/src</directory>
             <directory>src/Support/src</directory>
             <directory>src/PIIRedactor/src</directory>

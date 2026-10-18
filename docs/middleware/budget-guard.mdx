@@ -1,0 +1,248 @@
+---
+title: "Budget Guard"
+description: "Use BudgetGuard to estimate the cost of a Laravel AI agent step before the provider is called, and enforce per-request, per-session, and per-user-per-day spending budgets."
+sidebarTitle: "Budget Guard"
+---
+
+`BudgetGuard` estimates the cost of a generation step before the provider is called, and enforces per-request, per-session, and per-user-per-day spending budgets.
+
+It can block, log, or truncate the prompt down to size, or fully delegate handling to a custom callback.
+
+## Why this middleware exists
+
+A runaway tool-calling loop, a model switched to something far pricier, or simple abuse can turn one agent into an open-ended bill. `BudgetGuard` is the gate that sits just before the provider call and stops a request before it adds to that bill, rather than reporting on the damage afterwards.
+
+<Tip>
+    Every budget is disabled until you set a limit. Adding this middleware with no options does nothing.
+</Tip>
+
+## Installation
+
+```bash
+composer require promptphp/intercept-budget-guard
+```
+
+The package depends only on the [Support](/configuration) package, for its shared config and step-inspection helpers.
+
+## Basic usage
+
+```php
+use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasMiddleware;
+use PromptPHP\Intercept\BudgetGuard\BudgetGuard;
+
+class SupportAgent implements Agent, HasMiddleware
+{
+    public function instructions(): string
+    {
+        return 'You help customers with support tickets.';
+    }
+
+    public function middleware(): array
+    {
+        return [
+            new BudgetGuard(
+                maxCostPerRequest: 0.50,
+            ),
+        ];
+    }
+}
+```
+
+## What it checks
+
+Three budgets, each independent and each optional. A step reports the first one it would exceed.
+
+### Per-request budget
+
+```php
+new BudgetGuard(maxCostPerRequest: 0.50)
+```
+
+The whole run, including the cost already accrued by its earlier steps. The Laravel AI SDK runs agent middleware once per generation step, and a multi-step tool-calling loop keeps spending with every round trip, so this is checked again on every step of a run, not only the first.
+
+### Per-session budget
+
+```php
+new BudgetGuard(maxCostPerSession: 10.00)
+```
+
+The spend recorded against a session key, within a rolling window (`sessionWindowHours`, default 24). A session is only tracked once a key can be resolved for the step. By default that is the agent's own conversation ID, for an agent that implements `RemembersConversations`:
+
+```php
+use Laravel\Ai\Concerns\RemembersConversations;
+use Laravel\Ai\Contracts\RemembersConversations as RemembersConversationsContract;
+
+class SupportAgent implements Agent, HasMiddleware, RemembersConversationsContract
+{
+    use RemembersConversations;
+
+    // ...
+}
+```
+
+An agent that does not remember conversations has no built-in notion of a session. Supply your own resolver to attribute spend to whatever you consider a session:
+
+```php
+new BudgetGuard(
+    maxCostPerSession: 10.00,
+    sessionKeyResolver: fn (PendingStep $step): ?string => request()->session()->getId(),
+)
+```
+
+A resolver that returns `null` means the step cannot be attributed to a session, so the budget is silently skipped for that step.
+
+### Per-user daily budget
+
+```php
+new BudgetGuard(maxCostPerUserPerDay: 5.00)
+```
+
+The spend recorded against a user key, for a rolling 24 hours from their first request in the window. By default the user is the agent's conversation participant, falling back to the authenticated user (`Auth::id()`). Supply your own resolver for anything else:
+
+```php
+new BudgetGuard(
+    maxCostPerUserPerDay: 5.00,
+    userKeyResolver: fn (PendingStep $step): ?string => $step->options?->agent?->conversationParticipant()?->id,
+)
+```
+
+## How cost is estimated and tracked
+
+Before the provider is called, the middleware estimates the step's input tokens from the full message history it is about to send, including tool call arguments and tool results, divided by an average characters-per-token ratio. Output tokens are assumed (`assumedOutputTokens`, default 1000), since the real count is not known until the provider replies.
+
+```php
+new BudgetGuard(
+    maxCostPerRequest: 0.50,
+    assumedOutputTokens: 500,
+)
+```
+
+<Tip>
+    Supply `tokenEstimator` for an exact count from the provider's own tokenizer, instead of the
+    built-in character count:
+
+    ```php
+    new BudgetGuard(
+        tokenEstimator: fn (PendingStep $step): int => MyTokenizer::count($step),
+    )
+    ```
+</Tip>
+
+Once the provider replies, the step's actual usage prices the spend recorded against the session and daily budgets, so the running total stays accurate even though the pre-call check was only an estimate.
+
+### Pricing
+
+A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral, in US dollars per million tokens. A model id is matched exactly first, then by the longest pricing key it starts with or contains, so a dated or gateway-prefixed id such as `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `bedrock/gpt-4o-mini-2024-07-18` still resolves to its family.
+
+Published pricing changes faster than this package releases. Override or extend it:
+
+```php
+new BudgetGuard(
+    modelPricing: [
+        'gpt-4o' => ['input' => 2.50, 'output' => 10.00],
+        'my-self-hosted-model' => ['input' => 0.10, 'output' => 0.20],
+    ],
+)
+```
+
+<Warning>
+    When no pricing is known for a step's model, `unknownModelAction` decides what happens:
+    `allow` (the default) logs the gap and lets the request through unmetered, while `block`
+    stops the run so an unpriced model can never spend against a budget unchecked.
+
+    ```php
+    new BudgetGuard(unknownModelAction: 'block')
+    ```
+</Warning>
+
+## Supported actions
+
+| Action     | Behaviour                                                                      |
+| ---------- | ------------------------------------------------------------------------------ |
+| `block`    | Throws before the provider is called.                                         |
+| `log`      | Logs the breach and lets the request through.                                 |
+| `truncate` | Shrinks the newest user message to fit, or falls back to `block` if it can't. |
+
+```php
+new BudgetGuard(action: 'log') // observe before enforcing
+```
+
+<Warning>
+    `truncate` only applies to the per-request budget. Shrinking the current prompt cannot undo
+    spend already recorded against a session or a user's day, so a session or daily breach
+    degrades to `block` regardless of the configured action.
+</Warning>
+
+## Blocked runs
+
+```text
+Request would exceed its configured budget [request: $0.6300 of $0.5000].
+```
+
+The exception names the breached budget and the dollar amounts, but never the session or user key spend was tracked against.
+
+```php
+use PromptPHP\Intercept\BudgetGuard\Exceptions\BudgetGuardException;
+use PromptPHP\Intercept\Support\Exceptions\InterceptException;
+
+try {
+    $response = $agent->prompt($message);
+} catch (BudgetGuardException $e) {
+    // $e->retryAfter holds the seconds until a windowed (session or daily) budget resets,
+    // or null for the per-request budget, which has no window.
+    return back()->withErrors('That request could not be completed.');
+} catch (InterceptException $e) {
+    return back()->withErrors('That request could not be completed.');
+}
+```
+
+`BudgetGuardException` extends `InterceptException` and carries a `retryAfter` in seconds for a windowed budget. Turn that into a `Retry-After` header in your own exception handler if you want one.
+
+## Custom callback handling
+
+A callback receives the step, the breach, and the cost estimate, and fully replaces the configured action. The return value is ignored, so throw to stop the run:
+
+```php
+use Laravel\Ai\PendingStep;
+use PromptPHP\Intercept\BudgetGuard\ValueObjects\BudgetBreach;
+use PromptPHP\Intercept\BudgetGuard\ValueObjects\CostEstimate;
+
+new BudgetGuard(
+    maxCostPerRequest: 0.50,
+    callback: function (PendingStep $step, BudgetBreach $breach, CostEstimate $estimate): void {
+        CostAlert::dispatch($breach->reference(), $breach->overspend());
+    },
+)
+```
+
+## Configuration
+
+You can set all options globally in `config/intercept.php` under `budget_guard`, or per agent through the constructor. Constructor values always win.
+
+```php
+'budget_guard' => [
+    'action'                    => 'block',
+    'max_cost_per_request'      => null,
+    'max_cost_per_session'      => null,
+    'max_cost_per_user_per_day' => null,
+    'session_window_hours'      => 24,
+    'assumed_output_tokens'     => 1000,
+    'model_pricing'             => [],
+    'unknown_model_action'      => 'allow',
+    'cache_store'               => null,
+    'log_preview'               => false,
+],
+```
+
+See the [configuration guide](/configuration) for the full option list.
+
+## Limitations
+
+The cost estimate before the call is a character-based approximation unless you supply `tokenEstimator`. The amount a provider actually bills can differ, including from how it rounds or bundles usage.
+
+Pricing changes faster than this package releases. Confirm the built-in rates against your provider's own pricing page and override the ones that matter to you.
+
+The session and daily budgets are tracked in the cache, not the database, and reset on their own window rather than at a fixed clock boundary. They require a key resolver that can identify the session or the user; without one, those budgets are silently skipped.
+
+When a run's model changes between steps, the per-request budget prices the earlier steps' accrued usage at the current step's rate, which is an approximation.

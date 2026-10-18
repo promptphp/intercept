@@ -17,6 +17,7 @@
         "pii-redaction",
         "rate-limiting",
         "semantic-caching",
+        "cost-control",
         "promptphp"
     ],
     "authors": [
@@ -42,6 +43,7 @@
         "symfony/var-dumper": "^7.0|^8.0.8"
     },
     "replace": {
+        "promptphp/intercept-budget-guard": "self.version",
         "promptphp/intercept-injection-guard": "self.version",
         "promptphp/intercept-pii-redactor": "self.version",
         "promptphp/intercept-support": "self.version",
@@ -50,6 +52,7 @@
     "autoload": {
         "psr-4": {
             "PromptPHP\\Intercept\\": "src/",
+            "PromptPHP\\Intercept\\BudgetGuard\\": "src/BudgetGuard/src/",
             "PromptPHP\\Intercept\\InjectionGuard\\": "src/InjectionGuard/src/",
             "PromptPHP\\Intercept\\PIIRedactor\\": "src/PIIRedactor/src/",
             "PromptPHP\\Intercept\\Support\\": "src/Support/src/",
@@ -58,6 +61,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "PromptPHP\\Intercept\\BudgetGuard\\Tests\\": "src/BudgetGuard/tests/",
             "PromptPHP\\Intercept\\InjectionGuard\\Tests\\": "src/InjectionGuard/tests/",
             "PromptPHP\\Intercept\\PIIRedactor\\Tests\\": "src/PIIRedactor/tests/",
             "PromptPHP\\Intercept\\Support\\Tests\\": "src/Support/tests/",
@@ -99,6 +103,7 @@
         ],
         "test": "vendor/bin/pest",
         "test:architecture": "vendor/bin/pest tests/Architecture",
+        "test:budget-guard": "vendor/bin/pest src/BudgetGuard/tests",
         "test:injection-guard": "vendor/bin/pest src/InjectionGuard/tests",
         "test:pii-redactor": "vendor/bin/pest src/PIIRedactor/tests",
         "test:support": "vendor/bin/pest src/Support/tests",

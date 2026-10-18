@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `promptphp/intercept-budget-guard`: estimates the cost of a generation step before the
+  provider is called, and enforces per-request, per-session, and per-user-per-day spending
+  budgets. Supports `block`, `log`, and `truncate` actions, a built-in pricing table for common
+  providers with custom overrides, and configurable handling for unpriced models. See
+  [#12](https://github.com/promptphp/intercept/issues/12).
+
 ## [1.0.0] - 2026-09-27
 
 Supports `laravel/ai` v1.0. The SDK now runs agent middleware once per generation step, not once
