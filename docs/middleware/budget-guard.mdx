@@ -4,13 +4,13 @@ description: "Use BudgetGuard to estimate a generation step's cost before the pr
 sidebarTitle: "Budget Guard"
 ---
 
-`BudgetGuard` estimates the cost of a generation step before the provider is called, and enforces per-request, per-session, and per-user-per-day spending budgets.
+`BudgetGuard` estimates the cost of a generation step before it reaches the provider, and enforces per-request, per-session, and per-user-per-day spending budgets.
 
 It can block, log, or truncate the prompt down to size, or fully delegate handling to a custom callback.
 
 ## Why this middleware exists
 
-A runaway tool-calling loop, a model switched to something far pricier, or simple abuse can turn one agent into an open-ended bill. `BudgetGuard` is the gate that sits just before the provider call and stops a request before it adds to that bill, rather than reporting on the damage afterwards.
+A runaway tool-calling loop, a model switched to something far pricier, or simple abuse can turn one agent into an open-ended bill. `BudgetGuard` sits just before the provider call. It stops a request before it adds to that bill, rather than reporting on the damage afterwards.
 
 <Tip>
     Every budget is disabled until you set a limit. Adding this middleware with no options does nothing.
@@ -51,7 +51,7 @@ class SupportAgent implements Agent, HasMiddleware
 
 ## What it checks
 
-Three budgets, each independent and each optional. A step reports the first one it would exceed.
+`BudgetGuard` checks three budgets. Each one is independent and optional. A step reports the first one it would exceed.
 
 ### Per-request budget
 
@@ -59,7 +59,7 @@ Three budgets, each independent and each optional. A step reports the first one 
 new BudgetGuard(maxCostPerRequest: 0.50)
 ```
 
-The whole run, including the cost already accrued by its earlier steps. The Laravel AI SDK runs agent middleware once per generation step, and a multi-step tool-calling loop keeps spending with every round trip, so this is checked again on every step of a run, not only the first.
+The whole run, including the cost already accrued by its earlier steps. The Laravel AI SDK runs agent middleware once per generation step. A multi-step tool-calling loop keeps spending with every round trip, so the middleware checks this budget on every step of a run, not only the first.
 
 ### Per-session budget
 
@@ -109,7 +109,7 @@ new BudgetGuard(
 
 ## How cost is estimated and tracked
 
-Before the provider is called, the middleware estimates the step's input tokens from the full message history it is about to send, including tool call arguments and tool results, divided by an average characters-per-token ratio. Output tokens are assumed (`assumedOutputTokens`, default 1000), since the real count is not known until the provider replies.
+Before the step reaches the provider, the middleware estimates the step's input tokens. It divides the character count of the full message history it is about to send, including tool call arguments and tool results, by an average characters-per-token ratio. Output tokens are assumed (`assumedOutputTokens`, default 1000), since the real count is not known until the provider replies.
 
 ```php
 new BudgetGuard(
@@ -129,11 +129,11 @@ new BudgetGuard(
     ```
 </Tip>
 
-Once the provider replies, the step's actual usage prices the spend recorded against the session and daily budgets, so the running total stays accurate even though the pre-call check was only an estimate.
+Once the provider replies, the middleware prices the spend recorded against the session and daily budgets from the step's actual usage. The running total stays accurate even though the pre-call check was only an estimate.
 
 ### Pricing
 
-A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral, in US dollars per million tokens. A model id is matched exactly first, then by the longest pricing key it starts with or contains, so a dated or gateway-prefixed id such as `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `bedrock/gpt-4o-mini-2024-07-18` still resolves to its family.
+A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral, in US dollars per million tokens. The middleware matches a model ID exactly first, then by the longest pricing key it starts with or contains. A dated or gateway-prefixed id such as `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `bedrock/gpt-4o-mini-2024-07-18` still resolves to its family.
 
 Published pricing changes faster than this package releases. Override or extend it:
 

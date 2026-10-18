@@ -30,7 +30,7 @@ composer require promptphp/intercept
 
 ## Basic usage
 
-Return the `PIIRedactor` middleware on an agent's middleware method.
+Return the `PIIRedactor` middleware from an agent's middleware method.
 
 <Tip>
     To add middleware to an agent, implement the `HasMiddleware` interface and define a middleware method that returns an array of middleware classes.
@@ -76,7 +76,7 @@ By default, the middleware will:
 
 The recommended default action is `redact`.
 
-Some entities can still be blocked even when the action is `redact`. By default, credit cards, API keys, and bearer tokens are blocked.
+The middleware can still block some entities even when the action is `redact`. By default, it blocks credit cards, API keys, and bearer tokens.
 
 ## Supported entities
 
@@ -139,7 +139,7 @@ public function middleware(): array
 }
 ```
 
-In this case, the middleware will use `log` for that agent, even though the global config says `redact`.
+In this case, the middleware uses `log` for that agent, even though the global config says `redact`.
 
 ### Partial configuration
 
