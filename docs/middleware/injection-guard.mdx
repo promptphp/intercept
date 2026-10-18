@@ -29,7 +29,7 @@ composer require promptphp/intercept
 
 ## Basic usage
 
-Return the `PromptInjectionGuard` middleware on an agent's middleware method.
+Return the `PromptInjectionGuard` middleware from an agent's middleware method.
 
 <Tip>
     To add middleware to an agent, implement the `HasMiddleware` interface and define a middleware method that returns an array of middleware classes.
@@ -119,7 +119,7 @@ public function middleware(): array
 }
 ```
 
-In this case, the middleware will use `log` for that agent, even though the global config says `block`.
+In this case, the middleware uses `log` for that agent, even though the global config says `block`.
 
 ### Partial configuration
 
