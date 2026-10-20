@@ -133,7 +133,7 @@ Once the provider replies, the middleware prices the spend recorded against the 
 
 ### Pricing
 
-A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral, in US dollars per million tokens. The middleware matches a model ID exactly first, then by the longest pricing key it starts with or contains. A dated or gateway-prefixed id such as `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `bedrock/gpt-4o-mini-2024-07-18` still resolves to its family.
+A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral, in US dollars per million tokens. The middleware matches a model ID exactly first, then by the longest pricing key it starts with or contains. A dated or gateway-prefixed ID such as `us.anthropic.claude-3-5-haiku-20241022-v1:0` or `bedrock/gpt-4o-mini-2024-07-18` still resolves to its family.
 
 Published pricing changes faster than this package releases. Override or extend it:
 
@@ -148,8 +148,8 @@ new BudgetGuard(
 
 <Warning>
     When no pricing is known for a step's model, `unknownModelAction` decides what happens:
-    `allow` (the default) logs the gap and lets the request through unmetered, while `block`
-    stops the run so an unpriced model can never spend against a budget unchecked.
+    `allow` (the default) logs the gap and lets the request through unmetered. `block` stops
+    the run so an unpriced model can never spend against a budget unchecked.
 
     ```php
     new BudgetGuard(unknownModelAction: 'block')
@@ -170,8 +170,8 @@ new BudgetGuard(action: 'log') // observe before enforcing
 
 <Warning>
     `truncate` only applies to the per-request budget. Shrinking the current prompt cannot undo
-    spend already recorded against a session or a user's day, so a session or daily breach
-    degrades to `block` regardless of the configured action.
+    spend already recorded against a session or a user's day. A session or daily breach
+    therefore degrades to `block` regardless of the configured action.
 </Warning>
 
 ## Blocked runs
