@@ -226,7 +226,7 @@ The `type` is one of `denied_tool`, `pii`, or `injection`. The `detail` carries 
 
 ## Custom callback handling
 
-A callback receives the step, the step response, and the findings, and fully replaces the configured action. The return value is ignored, so throw to stop the run:
+A callback receives the step, the step response, and the findings, and fully replaces the configured action. The middleware ignores the return value, so throw to stop the run:
 
 ```php
 use Laravel\Ai\Gateway\StepResponse;

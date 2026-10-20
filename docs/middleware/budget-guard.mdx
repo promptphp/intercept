@@ -67,7 +67,7 @@ The whole run, including the cost already accrued by its earlier steps. The Lara
 new BudgetGuard(maxCostPerSession: 10.00)
 ```
 
-The spend recorded against a session key, within a rolling window (`sessionWindowHours`, default 24). A session is only tracked once a key can be resolved for the step. By default that is the agent's own conversation ID, for an agent that implements `RemembersConversations`:
+The spend recorded against a session key, within a rolling window (`sessionWindowHours`, default 24). The middleware only tracks a session once it can resolve a key for the step. By default that is the agent's own conversation ID, for an agent that implements `RemembersConversations`:
 
 ```php
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -90,7 +90,7 @@ new BudgetGuard(
 )
 ```
 
-A resolver that returns `null` means the step cannot be attributed to a session, so the budget is silently skipped for that step.
+When a resolver returns `null`, the middleware cannot attribute the step to a session. It silently skips the budget for that step.
 
 ### Per-user daily budget
 
@@ -201,7 +201,7 @@ try {
 
 ## Custom callback handling
 
-A callback receives the step, the breach, and the cost estimate, and fully replaces the configured action. The return value is ignored, so throw to stop the run:
+A callback receives the step, the breach, and the cost estimate, and fully replaces the configured action. The middleware ignores the return value, so throw to stop the run:
 
 ```php
 use Laravel\Ai\PendingStep;
@@ -243,6 +243,6 @@ The cost estimate before the call is a character-based approximation unless you 
 
 Pricing changes faster than this package releases. Confirm the built-in rates against your provider's own pricing page and override the ones that matter to you.
 
-The session and daily budgets are tracked in the cache, not the database, and reset on their own window rather than at a fixed clock boundary. They require a key resolver that can identify the session or the user; without one, those budgets are silently skipped.
+The session and daily budgets are tracked in the cache, not the database, and reset on their own window rather than at a fixed clock boundary. They require a key resolver that can identify the session or the user. Without one, the middleware silently skips those budgets.
 
 When a run's model changes between steps, the per-request budget prices the earlier steps' accrued usage at the current step's rate, which is an approximation.
