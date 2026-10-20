@@ -7,11 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-21
+
+No middleware code changed in this release. If you run v1.1.0, you do not need to upgrade.
+
+### Fixed
+
+- `promptphp/intercept-budget-guard` is now on Packagist. 
+- Text such as `11;rgb:1e1e/1e1e/1e1e;1R` no longer appears in the terminal after a release. The release script now pipes `gh release create` through `cat`, so `gh` does not ask the terminal for its colours.
+
 ### Changed
 
 - `composer release` now releases every split package and the main repository at one version. It shows the
-  latest tag of each repository and asks for the version. `release:all`, `release:root`, `publish:all` and
-  `RELEASE_TYPE` are removed.
+  latest tag of each repository and asks for the version.
+- `composer release` splits every package before it creates a tag. It stops before any push if the working
+  tree has changes, if `HEAD` is not the latest commit on `origin/main`, or if the version is lower than the
+  latest tag.
+- The **Publish Release** workflow takes the version as input, and it also releases the main repository.
+- The scripts in `tools/` use tabs for indentation. A new `.editorconfig` file keeps this rule.
+
+### Removed
+
+- The `release:all`, `release:root` and `publish:all` Composer scripts, the `RELEASE_TYPE` variable, and
+  `tools/release-root.sh`.
+- The `v1.0.1` tag of `promptphp/intercept` and the `v0.1.0` tag of `promptphp/intercept-budget-guard`. Both
+  tags point at the same commits as `v1.1.0`, and neither tag has a GitHub release. If you pinned
+  `promptphp/intercept` to `1.0.1`, use `^1.1` instead.
 
 ## [1.1.0] - 2026-10-20
 

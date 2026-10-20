@@ -5,6 +5,14 @@ rss: true
 description: "Product updates and release notes for Intercept, including dependency limits, security patches, and changes to middleware collection."
 ---
 
+<Update label="October 21, 2026" description="v1.1.1" tags={["Patch", "Fix"]}>
+    Made Budget Guard available on Packagist. 
+
+    No middleware code changed. If you run v1.1.0, you do not need to upgrade.
+
+    This release also changed the release tooling, so every Intercept package and the main repository get the same version on each release.
+</Update>
+
 <Update label="October 20, 2026" description="v1.1.0" tags={["Release", "Cost control"]}>
     Added `promptphp/intercept-budget-guard`, a new middleware that estimates the cost of a generation step before the provider is called.
 
