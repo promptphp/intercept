@@ -109,7 +109,7 @@ new BudgetGuard(
 
 ## How cost is estimated and tracked
 
-Before the step reaches the provider, the middleware estimates the step's input tokens. It divides the character count of the full message history it is about to send, including tool call arguments and tool results, by an average characters-per-token ratio. Output tokens are assumed (`assumedOutputTokens`, default 1000), since the real count is not known until the provider replies.
+Before the step reaches the provider, the middleware estimates the step's input tokens. It divides the character count of the full message history it is about to send, including tool call arguments and tool results, by an average characters-per-token ratio. The middleware assumes a fixed output token count (`assumedOutputTokens`, default 1000), since the real count is not known until the provider replies.
 
 ```php
 new BudgetGuard(
@@ -180,7 +180,7 @@ new BudgetGuard(action: 'log') // observe before enforcing
 Request would exceed its configured budget [request: $0.6300 of $0.5000].
 ```
 
-The exception names the breached budget and the dollar amounts, but never the session or user key spend was tracked against.
+The exception names the breached budget and the dollar amounts, but never the session or user key the middleware tracked spend against.
 
 ```php
 use PromptPHP\Intercept\BudgetGuard\Exceptions\BudgetGuardException;
