@@ -17,32 +17,32 @@ require_jq
 require_gh
 
 for folder in $(package_folders); do
-    repo="$(package_repo_name "${folder}")"
-    composer_name="$(package_composer_name "${folder}")"
-    description="$(package_description "${folder}")"
+	repo="$(package_repo_name "${folder}")"
+	composer_name="$(package_composer_name "${folder}")"
+	description="$(package_description "${folder}")"
 
-    if [[ -z "${description}" ]]; then
-        description="Split package for ${composer_name}."
-    fi
+	if [[ -z "${description}" ]]; then
+		description="Split package for ${composer_name}."
+	fi
 
-    read_only_description="[READ ONLY] ${description}"
+	read_only_description="[READ ONLY] ${description}"
 
-    echo ""
-    echo "Checking ${ORG}/${repo}..."
+	echo ""
+	echo "Checking ${ORG}/${repo}..."
 
-    if gh repo view "${ORG}/${repo}" >/dev/null 2>&1; then
-        echo "Repository already exists: ${ORG}/${repo}"
-        continue
-    fi
+	if gh repo view "${ORG}/${repo}" >/dev/null 2>&1; then
+		echo "Repository already exists: ${ORG}/${repo}"
+		continue
+	fi
 
-    echo "Creating ${ORG}/${repo}..."
+	echo "Creating ${ORG}/${repo}..."
 
-    gh repo create "${ORG}/${repo}" \
-        --public \
-        --description "${read_only_description}" \
-        --homepage "https://intercept.promptphp.com" \
-        --disable-issues \
-        --disable-wiki
+	gh repo create "${ORG}/${repo}" \
+		--public \
+		--description "${read_only_description}" \
+		--homepage "https://intercept.promptphp.com" \
+		--disable-issues \
+		--disable-wiki
 
-    echo "Created ${ORG}/${repo}"
+	echo "Created ${ORG}/${repo}"
 done

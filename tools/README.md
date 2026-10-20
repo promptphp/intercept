@@ -94,27 +94,31 @@ composer split:all
 
 ### `release.sh`
 
-Creates Git tags and GitHub releases for split repositories.
+Releases every split package and the main `promptphp/intercept` repository at one version. All repositories always share the same version.
 
-To run changed packages only:
+The script:
+
+1. Checks that the working tree is clean and that `HEAD` is the latest commit on `origin/main`.
+2. Shows the latest tag of each repository.
+3. Asks for the version to release, and then asks you to confirm.
+4. Splits every package into its mirror repository.
+5. Tags and releases each mirror, and then tags and releases the main repository.
+
+Run:
 
 ```bash
 composer release
 ```
 
-To run all packages:
+Type the version with or without the `v` prefix, for example `1.2.0` or `v1.2.0`. The script refuses a version that is lower than the latest tag.
+
+To skip the prompt, for example in CI, set `RELEASE_VERSION`:
 
 ```bash
-composer release:all
+RELEASE_VERSION=1.2.0 composer release
 ```
 
-For the first public release:
-
-```bash
-RELEASE_TYPE=minor composer release:all
-```
-
-This creates `v0.1.0` when no previous tags exist.
+The script skips each tag and release that already exists. If a release stops partway, run it again with the same version to complete it.
 
 ## Package name overrides
 
@@ -137,30 +141,19 @@ Example:
 > [!IMPORTANT]
 > If a package is not listed there, the tooling falls back to a kebab-case version of the folder name.
 
-## Useful workflow
+## Release workflow
 
-For normal patch releases after the minor release:
-
-```bash
-composer test
-composer test:lint
-composer packages:validate
-composer split
-composer release:all
-composer release:root
-```
-
-For a minor release:
+Use the same steps for a patch, minor or major release:
 
 ```bash
 composer test
 composer test:lint
-composer packages:validate
-composer mirrors:create
-composer mirrors:sync
-composer split:all
-RELEASE_TYPE=minor composer release:all
+composer publish
 ```
+
+`composer publish` validates the packages, creates missing mirror repositories and syncs their metadata. Then it runs `composer release`.
+
+To release from GitHub Actions, run the **Publish Release** workflow and enter the version.
 
 ## Troubleshooting
 

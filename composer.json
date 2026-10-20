@@ -83,23 +83,15 @@
         "packages:validate": "bash tools/validate-packages.sh",
         "split": "bash tools/split.sh",
         "split:all": "bash tools/split.sh --all",
-        "release": "bash tools/release.sh",
-        "release:all": "bash tools/release.sh --all",
-        "release:root": "bash tools/release-root.sh",
+        "release": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tools/release.sh"
+        ],
         "publish": [
             "@packages:validate",
             "@mirrors:create",
             "@mirrors:sync",
-            "@split",
             "@release"
-        ],
-        "publish:all": [
-            "@packages:validate",
-            "@mirrors:create",
-            "@mirrors:sync",
-            "@split:all",
-            "@release:all",
-            "@release:root"
         ],
         "test": "vendor/bin/pest",
         "test:architecture": "vendor/bin/pest tests/Architecture",
@@ -117,8 +109,8 @@
     "scripts-descriptions": {
         "mirrors:create": "Create mirror repositories for any new middleware packages",
         "split": "Subtree-split changed packages into their mirror repos",
-        "release": "Tag and release the packages changed in the latest commit",
-        "publish": "Full release: create mirrors, split, then release"
+        "release": "Split all packages, then release every repository at one version",
+        "publish": "Full release: validate, create and sync mirrors, then release"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

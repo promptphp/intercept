@@ -17,45 +17,45 @@ require_jq
 require_gh
 
 for folder in $(package_folders); do
-    repo="$(package_repo_name "${folder}")"
-    composer_name="$(package_composer_name "${folder}")"
-    description="$(package_description "${folder}")"
-    homepage="$(package_homepage "${folder}")"
+	repo="$(package_repo_name "${folder}")"
+	composer_name="$(package_composer_name "${folder}")"
+	description="$(package_description "${folder}")"
+	homepage="$(package_homepage "${folder}")"
 
-    if [[ -z "${description}" ]]; then
-        description="Split package for ${composer_name}."
-    fi
+	if [[ -z "${description}" ]]; then
+		description="Split package for ${composer_name}."
+	fi
 
-    read_only_description="[READ ONLY] ${description}"
+	read_only_description="[READ ONLY] ${description}"
 
-    echo ""
-    echo "Updating metadata for ${ORG}/${repo}..."
+	echo ""
+	echo "Updating metadata for ${ORG}/${repo}..."
 
-    gh repo edit "${ORG}/${repo}" \
-        --description "${read_only_description}" \
-        --homepage "${homepage}"
+	gh repo edit "${ORG}/${repo}" \
+		--description "${read_only_description}" \
+		--homepage "${homepage}"
 
-    topics=(
-        "promptphp"
-        "intercept"
-        "laravel"
-        "ai"
-        "middleware"
-    )
+	topics=(
+		"promptphp"
+		"intercept"
+		"laravel"
+		"ai"
+		"middleware"
+	)
 
-    while read -r keyword; do
-        if [[ -n "${keyword}" ]]; then
-            topics+=("${keyword}")
-        fi
-    done < <(package_keywords "${folder}")
+	while read -r keyword; do
+		if [[ -n "${keyword}" ]]; then
+			topics+=("${keyword}")
+		fi
+	done < <(package_keywords "${folder}")
 
-    for topic in "${topics[@]}"; do
-        topic="$(echo "${topic}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
+	for topic in "${topics[@]}"; do
+		topic="$(echo "${topic}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
 
-        if [[ -n "${topic}" ]]; then
-            gh repo edit "${ORG}/${repo}" --add-topic "${topic}" >/dev/null || true
-        fi
-    done
+		if [[ -n "${topic}" ]]; then
+			gh repo edit "${ORG}/${repo}" --add-topic "${topic}" >/dev/null || true
+		fi
+	done
 
-    echo "Updated ${ORG}/${repo}"
+	echo "Updated ${ORG}/${repo}"
 done

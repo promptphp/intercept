@@ -1,22 +1,12 @@
-name: Publish Split Packages
+name: Publish Release
 
 on:
   workflow_dispatch:
     inputs:
-      release_type:
-        description: Release type
+      version:
+        description: Version to release for all repositories, for example 1.2.0
         required: true
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-      all:
-        description: Publish all packages
-        required: true
-        default: true
-        type: boolean
+        type: string
 
 jobs:
   publish:
@@ -54,24 +44,9 @@ jobs:
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: composer mirrors:sync
 
-      - name: Split packages
-        env:
-          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-        run: |
-          if [ "${{ inputs.all }}" = "true" ]; then
-            composer split:all
-          else
-            composer split
-          fi
-
-      - name: Release packages
+      - name: Split and release
         env:
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-          RELEASE_TYPE: ${{ inputs.release_type }}
-        run: |
-          if [ "${{ inputs.all }}" = "true" ]; then
-            composer release:all
-          else
-            composer release
-          fi
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: composer release

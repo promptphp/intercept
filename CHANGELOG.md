@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `composer release` now releases every split package and the main repository at one version. It shows the
+  latest tag of each repository and asks for the version. `release:all`, `release:root`, `publish:all` and
+  `RELEASE_TYPE` are removed.
+
+## [1.1.0] - 2026-10-20
+
 ### Added
 
 - `promptphp/intercept-budget-guard`: estimates the cost of a generation step before the

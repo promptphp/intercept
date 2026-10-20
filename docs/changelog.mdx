@@ -5,6 +5,24 @@ rss: true
 description: "Product updates and release notes for Intercept, including dependency limits, security patches, and changes to middleware collection."
 ---
 
+<Update label="October 20, 2026" description="v1.1.0" tags={["Release", "Cost control"]}>
+    Added `promptphp/intercept-budget-guard`, a new middleware that estimates the cost of a generation step before the provider is called.
+
+    A runaway tool-calling loop, a switch to a more expensive model, or abuse can turn one agent into an open-ended bill. Budget Guard stops the request before it spends, not after.
+
+    It enforces three budgets. Each one is optional and disabled until you set a limit:
+
+    - **Per request**, which includes the cost of the earlier steps in the same run
+    - **Per session**, within a rolling window
+    - **Per user per day**, within a rolling 24 hours
+
+    When a step would exceed a budget, the middleware can `block`, `log`, or `truncate` the newest user message to fit. A callback can replace the action fully.
+
+    A built-in table prices common models from Anthropic, OpenAI, Google, xAI, DeepSeek, and Mistral. You can override or extend it with `modelPricing`. Set `unknownModelAction` to `block` to stop a model with no known price.
+
+    Adding the middleware with no options does nothing, so you can install it before you choose limits. See [Budget Guard](/middleware/budget-guard).
+</Update>
+
 <Update label="September 27, 2026" description="v1.0.0" tags={["Major", "Breaking"]}>
     Supports `laravel/ai` v1.0. The SDK now runs agent middleware once per generation step, not once per prompt.
 
