@@ -152,7 +152,7 @@ Supported actions:
 1. block
 2. log
 
-Unlike PII Redactor, `entities` defaults to only the high-risk set: `credit_card`, `api_key` and `bearer_token`. Contact data and locators are supported but opt-in. In a proposed tool argument, they are usually the tool's own parameters rather than an exfiltration signal. `scan_injection` is off by default for the same reason. See the [Tool Approval Guard guide](/middleware/tool-approval-guard#secret-like-data).
+Unlike PII Redactor, `entities` defaults to only the high-risk set: `credit_card`, `api_key`, and `bearer_token`. Contact data and locators are supported but opt-in. In a proposed tool argument, they are usually the tool's own parameters rather than an exfiltration signal. `scan_injection` is off by default for the same reason. See the [Tool Approval Guard guide](/middleware/tool-approval-guard#secret-like-data).
 
 `block_entities` stops the run regardless of the `action` setting. For an observe-only `action: 'log'` setup, also set `block_entities` to `[]`.
 

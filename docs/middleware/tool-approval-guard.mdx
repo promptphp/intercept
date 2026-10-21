@@ -90,7 +90,7 @@ new ToolApprovalGuard(
 
 ### Secret-like data
 
-The middleware runs the same detectors as [PII Redactor](/middleware/pii-redactor), including the Luhn check on card numbers. By default it scans for **only three entities**: `credit_card`, `api_key` and `bearer_token`.
+The middleware runs the same detectors as [PII Redactor](/middleware/pii-redactor), including the Luhn check on card numbers. By default it scans for **only three entities**: `credit_card`, `api_key`, and `bearer_token`.
 
 Entities listed in `block_entities` stop the run regardless of the configured action, matching PII Redactor's behaviour.
 
@@ -102,8 +102,8 @@ Entities listed in `block_entities` stop the run regardless of the configured ac
 
     Exfiltration is about **destination**, not presence, and the destination
     cannot be judged from the value alone. Adding `email`, `phone`, `url`,
-    `ip_address` or `mac_address` will flag legitimate calls made by any agent
-    that owns a mail, SMS or HTTP tool.
+    `ip_address`, or `mac_address` will flag legitimate calls made by any agent
+    that owns a mail, SMS, or HTTP tool.
 
     To control *where* a tool may send data, use `allowed_tools` /
     `denied_tools` and domain allowlisting inside the tool itself.
