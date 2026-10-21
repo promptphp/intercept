@@ -243,6 +243,6 @@ The cost estimate before the call is a character-based approximation unless you 
 
 Pricing changes faster than this package releases. Confirm the built-in rates against your provider's own pricing page and override the ones that matter to you.
 
-The session and daily budgets are tracked in the cache, not the database, and reset on their own window rather than at a fixed clock boundary. They require a key resolver that can identify the session or the user. Without one, the middleware silently skips those budgets.
+The middleware tracks the session and daily budgets in the cache, not the database. Each budget resets on its own window rather than at a fixed clock boundary. They require a key resolver that can identify the session or the user. Without one, the middleware silently skips those budgets.
 
 When a run's model changes between steps, the per-request budget prices the earlier steps' accrued usage at the current step's rate, which is an approximation.
