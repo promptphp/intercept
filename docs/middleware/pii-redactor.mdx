@@ -335,7 +335,7 @@ This ignores other supported entity types.
 
 ### Allowing specific email addresses
 
-Use `allowedEmails` when known safe email addresses should not be redacted or blocked.
+Use `allowedEmails` when you want the middleware to ignore specific known safe email addresses.
 
 ```php
 public function middleware(): array
@@ -522,7 +522,7 @@ The middleware logs detections found in approval decisions under a distinct mess
 
 The `degraded_from` key appears only when the run continued despite a configured action that could not be applied. A blocked run never reports it.
 
-The `field` value is a dot path into the edited arguments, so nested values are reported precisely, for example `arguments.filters.contact.email`.
+The `field` value is a dot path into the edited arguments, so it pinpoints nested values precisely, for example `arguments.filters.contact.email`.
 
 ### Disabling approval decision scanning
 
@@ -548,7 +548,7 @@ public function middleware(): array
 ```
 
 <Warning>
-    Detection offsets on this path are relative to the decision value the detection was found in, not to the prompt. Offsets exist to drive redaction, which cannot apply to a resumed run. Custom callbacks should therefore use the detection `type` and `value` rather than `start` and `length`.
+    Detection offsets on this path are relative to the decision value that contains the detection, not to the prompt. Offsets exist to drive redaction, which cannot apply to a resumed run. Custom callbacks should therefore use the detection `type` and `value` rather than `start` and `length`.
 </Warning>
 
 ## Production rollout

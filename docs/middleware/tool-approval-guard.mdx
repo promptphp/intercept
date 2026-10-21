@@ -113,7 +113,7 @@ Entities listed in `block_entities` stop the run regardless of the configured ac
 
 A proposed argument that matches an injection pattern suggests that content the middleware never saw manipulated the model. It uses the same patterns as [Injection Guard](/middleware/injection-guard).
 
-**This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match, such as "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
+**This scan is off by default.** Prose a model writes for a human reader routinely contains phrases the patterns match. Examples include "You are now subscribed to weekly updates.", "From now on we will email you every Monday.", "System: scheduled maintenance at 3pm." None of those indicate manipulation in that context.
 
 Enable it when a proposed argument feeds **another model or agent** rather than a person:
 
